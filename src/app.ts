@@ -29,6 +29,10 @@ app.use("/professionals", ensureAuthenticated, professionalsRoutes);
 app.use("/appointments", ensureAuthenticated, appointmentsRoutes);
 app.use("/dashboard", ensureAuthenticated, dashboardRoutes);
 
+app.get("/health", (_, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(errorHandler);
 
 export default app;
