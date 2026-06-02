@@ -20,7 +20,7 @@ async create(customer: Customer): Promise<Customer> {
             create: customer.contacts.map((c) => ({
               type: c.type,
               value: c.value,
-              userId: customer.userId, // 🔥 AQUI ESTAVA O PROBLEMA
+              userId: customer.userId,
             })),
           },
         }),

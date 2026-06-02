@@ -2,8 +2,7 @@ import type { Request, Response } from "express";
 import CreateUserService from "./services/CreateUserService.js";
 import { UserMapper } from "./UsersMappers.js";
 import UpdateUserService from "./services/UpdateUserService.js";
-import { updateUserSchema } from "./schemas/updateUserSchema.js";
-import { createUserSchema } from "./schemas/createUserSchema.js";
+import { createUserSchema, updateUserSchema } from "./usersSchemas.js";
 
 class UsersController {
   constructor(

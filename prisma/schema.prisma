@@ -94,8 +94,8 @@ model Contact {
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  @@unique([customerId, type])       // 1 por tipo por cliente
-  @@unique([userId, type, value])   // não repete dentro da empresa
+  @@unique([customerId, type])
+  @@unique([userId, type, value])
 
   @@map("contacts")
 }

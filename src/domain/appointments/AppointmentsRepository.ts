@@ -197,12 +197,11 @@ export class AppointmentsRepository implements IAppointmentsRepository {
 
         return {
           appointment: appointmentEntity,
-          // 💡 Mapeamento limpo e direto, pois o cliente agora é obrigatório no seu Schema
           customerName: appointment.customer.name,
           items: appointment.items.map((item) => ({
-            serviceId: item.serviceId, // Aceita string | null de acordo com o Prisma e a Interface
+            serviceId: item.serviceId,
             serviceName: item.serviceName,
-            professionalId: item.professionalId, // Aceita string | null de acordo com o Prisma e a Interface
+            professionalId: item.professionalId,
             professionalName: item.professionalName,
             value: Number(item.value),
           })),
