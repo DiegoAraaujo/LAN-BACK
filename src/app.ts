@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { usersRoutes } from "./routes/usersRoutes.js";
 import { errorHandler } from "./shared/middlewares/errorHandler.js";
 import { sessionsRoutes } from "./routes/authRoutes.js";
@@ -12,6 +14,22 @@ import { appointmentsRoutes } from "./routes/appointmentsRoutes.js";
 import { dashboardRoutes } from "./routes/dashboardRoutes.js";
 
 const app = express();
+
+app.set("trust proxy", 1);
+
+app.use(helmet());
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === "production" ? 100 : 10000,
+    handler: (req, res) => {
+      res.status(429).json({
+        message: "Too many requests. Please try again later.",
+        code: "TOO_MANY_REQUESTS",
+      });
+    },
+  }),
+);
 
 app.use(
   cors({
