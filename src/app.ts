@@ -21,7 +21,7 @@ app.use(helmet());
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: process.env.NODE_ENV === "production" ? 100 : 10000,
+    max: 100,
     handler: (req, res) => {
       res.status(429).json({
         message: "Too many requests. Please try again later.",
