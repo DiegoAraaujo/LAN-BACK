@@ -6,7 +6,7 @@ import type {
 interface IRequest {
   userId: string;
   search?: string | undefined;
-  paymentStatus?: "PAID" | "PENDING" | undefined;
+  paymentStatus?: "PAID" | "PENDING" | "PARTIAL" | undefined;
   year?: number | undefined;
   month?: number | undefined;
   page?: number | undefined;

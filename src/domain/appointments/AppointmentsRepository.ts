@@ -1,3 +1,5 @@
+import { financeTransaction, syncAppointment, cents } from "../finance/FinanceService.js";
+import { AppError } from "../../shared/errors/AppError.js";
 import type { Prisma } from "@prisma/client";
 import type {
   IAppointmentsRepository,
@@ -14,7 +16,11 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     appointment: Appointment,
     items: ICreateAppointmentItemInput[],
   ): Promise<Appointment> {
-    const created = await prisma.appointment.create({
+    const created = await financeTransaction(appointment.userId, async tx => {
+    if (!await tx.customer.findFirst({ where: { id: appointment.customerId, userId: appointment.userId, deletedAt: null } })) {
+      throw new AppError("Customer not found.", 404, "CUSTOMER_NOT_FOUND");
+    }
+    const row = await tx.appointment.create({
       data: {
         userId: appointment.userId,
         customerId: appointment.customerId,
@@ -41,18 +47,29 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       },
     });
 
+    if (appointment.paymentStatus === "PAID" && cents(appointment.total) > 0) {
+      await tx.financeEntry.create({ data: { userId: appointment.userId, customerId: appointment.customerId, appointmentId: row.id, kind: "PAYMENT", description: "Pagamento no cadastro", category: "Atendimentos", cashCents: cents(appointment.total), appliedCents: cents(appointment.total), method: appointment.paymentMethod ?? "OTHER", occurredAt: new Date(), requestId: `initial:${row.id}` } });
+    }
+    return syncAppointment(tx, appointment.userId, row.id);
+    });
+
     return new Appointment({
       ...created,
       subtotal: Number(created.subtotal),
       discount: Number(created.discount),
       total: Number(created.total),
+      paidAmount: Number(created.paidAmount),
     });
   }
   async update(
     appointment: Appointment,
     items?: ICreateAppointmentItemInput[],
   ): Promise<Appointment> {
-    const updated = await prisma.appointment.update({
+    const updated = await financeTransaction(appointment.userId, async tx => {
+    const current = await tx.appointment.findFirst({ where: { id: appointment.id, userId: appointment.userId, deletedAt: null } });
+    if (!current) throw new AppError("Atendimento não encontrado.", 404, "APPOINTMENT_NOT_FOUND");
+    if (cents(current.paidAmount) > cents(appointment.total)) throw new AppError("Estorne pagamentos antes de reduzir o total.", 409, "PAYMENT_CONFLICT");
+    await tx.appointment.update({
       where: { id: appointment.id },
       data: {
         customerId: appointment.customerId,
@@ -60,8 +77,6 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         subtotal: appointment.subtotal,
         discount: appointment.discount,
         total: appointment.total,
-        paymentStatus: appointment.paymentStatus,
-        paymentMethod: appointment.paymentMethod,
         notes: appointment.notes,
 
         ...(items && {
@@ -81,11 +96,14 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       },
     });
 
+    return syncAppointment(tx, appointment.userId, appointment.id);
+    });
     return new Appointment({
       ...updated,
       subtotal: Number(updated.subtotal),
       discount: Number(updated.discount),
       total: Number(updated.total),
+      paidAmount: Number(updated.paidAmount),
     });
   }
 
@@ -105,6 +123,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       subtotal: Number(appointment.subtotal),
       discount: Number(appointment.discount),
       total: Number(appointment.total),
+      paidAmount: Number(appointment.paidAmount),
     });
   }
 
@@ -188,6 +207,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
           subtotal: Number(appointment.subtotal),
           discount: Number(appointment.discount),
           total: Number(appointment.total),
+      paidAmount: Number(appointment.paidAmount),
           paymentStatus: appointment.paymentStatus,
           paymentMethod: appointment.paymentMethod,
           notes: appointment.notes,
@@ -218,11 +238,12 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.appointment.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
+    const found = await prisma.appointment.findUnique({ where: { id } });
+    if (!found) return;
+    await financeTransaction(found.userId, async tx => {
+      const count = await tx.financeEntry.count({ where: { appointmentId: id } });
+      if (count) throw new AppError("Atendimentos com histórico financeiro não podem ser excluídos.", 409, "PAYMENT_CONFLICT");
+      await tx.appointment.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }
 }

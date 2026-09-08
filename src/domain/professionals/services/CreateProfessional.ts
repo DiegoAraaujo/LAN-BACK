@@ -1,6 +1,8 @@
 import type { IProfessionalsRepository } from "../../../interfaces/IProfessionalsRepository.js";
 import { AppError } from "../../../shared/errors/AppError.js";
 import { Professional } from "../ProfessionalEntity.js";
+import type { IServicesRepository } from "../../../interfaces/IServicesRepository.js";
+import { validateServices } from "./validateServices.js";
 
 interface IRequest {
   userId: string;
@@ -11,7 +13,10 @@ interface IRequest {
 }
 
 export class CreateProfessional {
-  constructor(private professionalsRepository: IProfessionalsRepository) {}
+  constructor(
+    private professionalsRepository: IProfessionalsRepository,
+    private servicesRepository: IServicesRepository,
+  ) {}
 
   async execute({
     userId,
@@ -20,6 +25,7 @@ export class CreateProfessional {
     phone,
     servicesIds,
   }: IRequest): Promise<Professional> {
+    const validatedIds = await validateServices(this.servicesRepository, userId, servicesIds ?? []);
     const professionalExists =
       await this.professionalsRepository.findByPhone(phone);
 
@@ -36,7 +42,7 @@ export class CreateProfessional {
       name: name,
       address: address,
       phone: phone,
-      servicesIds: servicesIds || [],
+      servicesIds: validatedIds,
     });
 
     return await this.professionalsRepository.create(professional);

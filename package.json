@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "npm run build && node --test tests/*.test.mjs"
+    "build": "prisma generate && tsc",
+    "db:deploy": "prisma migrate deploy",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

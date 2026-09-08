@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { financeRoutes } from "./routes/financeRoutes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -12,6 +13,7 @@ import { servicesRouter } from "./routes/servicesRoutes.js";
 import { professionalsRoutes } from "./routes/professionalsRoutes.js";
 import { appointmentsRoutes } from "./routes/appointmentsRoutes.js";
 import { dashboardRoutes } from "./routes/dashboardRoutes.js";
+import { allowedOrigins, browserSecurity } from "./shared/middlewares/browserSecurity.js";
 
 const app = express();
 
@@ -33,13 +35,13 @@ app.use(
 
 app.use(
   cors({
-    origin: [
-      ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
-      "http://localhost:3000",
-    ],
+    origin: allowedOrigins,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "X-CSRF-Protection"],
   }),
 );
 
+app.use(browserSecurity);
 app.use(express.json());
 
 app.use("/users", usersRoutes);
@@ -49,6 +51,7 @@ app.use("/services", ensureAuthenticated, servicesRouter);
 app.use("/professionals", ensureAuthenticated, professionalsRoutes);
 app.use("/appointments", ensureAuthenticated, appointmentsRoutes);
 app.use("/dashboard", ensureAuthenticated, dashboardRoutes);
+app.use("/finance", ensureAuthenticated, financeRoutes);
 
 app.get("/health", (_, res) => {
   res.status(200).json({ status: "ok" });

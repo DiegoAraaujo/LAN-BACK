@@ -2,19 +2,14 @@ import type { NextFunction, Request, Response } from "express";
 import authConfig from "../../config/auth.js";
 import { AppError } from "../errors/AppError.js";
 import { JsonwebtokenProvider } from "../providers/JsonwebtokenProvider.js";
+import { accessCookie, readCookie } from "../http/sessionCookies.js";
 
 export async function ensureAuthenticated(
   request: Request,
   response: Response,
   next: NextFunction,
 ) {
-  const authHeader = request.headers.authorization;
-
-  if (!authHeader) {
-    throw new AppError("Token missing", 401);
-  }
-
-  const [, token] = authHeader.split(" ");
+  const token = readCookie(request, accessCookie);
 
   const jwtProvider = new JsonwebtokenProvider();
 

@@ -8,7 +8,7 @@ export type CustomerWithStats = Prisma.CustomerGetPayload<{
       select: { appointments: true };
     };
     appointments: {
-      select: { total: true };
+      select: { total: true; paidAmount: true };
     };
   };
 }>;

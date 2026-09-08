@@ -1,4 +1,6 @@
 import { prisma } from "../../shared/database/prisma.js";
+import { financeTransaction, cents } from "../finance/FinanceService.js";
+import { AppError } from "../../shared/errors/AppError.js";
 import { Customer } from "./CustomerEntity.js";
 import type {
   CustomerWithStats,
@@ -136,10 +138,10 @@ async create(customer: Customer): Promise<Customer> {
         include: {
           contacts: true,
 
-          _count: { select: { appointments: true } },
+          _count: { select: { appointments: { where: { deletedAt: null } } } },
           appointments: {
             where: { deletedAt: null },
-            select: { total: true },
+            select: { total: true, paidAmount: true },
           },
         },
         orderBy: { name: "asc" },
@@ -202,9 +204,15 @@ async create(customer: Customer): Promise<Customer> {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.customer.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    const customer = await prisma.customer.findUnique({ where: { id } });
+    if (!customer) return;
+    await financeTransaction(customer.userId, async tx => {
+      const balance = await tx.financeEntry.aggregate({ where: { customerId: id, userId: customer.userId, status: "POSTED" }, _sum: { creditCents: true } });
+      const appointments = await tx.appointment.aggregate({ where: { customerId: id, userId: customer.userId, deletedAt: null }, _sum: { total: true, paidAmount: true } });
+      if ((balance._sum.creditCents ?? 0) !== 0 || cents(appointments._sum.total ?? 0) > cents(appointments._sum.paidAmount ?? 0)) {
+        throw new AppError("Cliente possui crédito ou pagamentos em aberto. Regularize o saldo antes de excluir.", 409, "PAYMENT_CONFLICT");
+      }
+      await tx.customer.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }
 }

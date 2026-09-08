@@ -5,11 +5,13 @@ import { DeleteProfessional } from "./services/DeleteProfessional.js";
 import { ListProfessionals } from "./services/ListProfessionals.js";
 import { ListProfessionalsByServiceId } from "./services/ListProfessionalsByServiceId.js";
 import { UpdateProfessional } from "./services/UpdateProfessional.js";
+import { ServicesRepository } from "../services/ServicesRepository.js";
 
 const professionalsRepository = new ProfessionalsRepository();
 
-const createProfessional = new CreateProfessional(professionalsRepository);
-const updateProfessional = new UpdateProfessional(professionalsRepository);
+const servicesRepository = new ServicesRepository();
+const createProfessional = new CreateProfessional(professionalsRepository, servicesRepository);
+const updateProfessional = new UpdateProfessional(professionalsRepository, servicesRepository);
 
 const deleteProfessional = new DeleteProfessional(professionalsRepository);
 

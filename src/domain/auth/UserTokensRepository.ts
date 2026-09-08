@@ -6,6 +6,27 @@ import type {
 import { prisma } from "../../shared/database/prisma.js";
 
 export class UserTokensRepository implements IUserTokensRepository {
+  async rotate(id: string, data: ICreateUserTokenDTO): Promise<boolean> {
+    return prisma.$transaction(async (transaction) => {
+      const deleted = await transaction.userToken.deleteMany({
+        where: { id, user_id: data.user_id },
+      });
+      if (deleted.count !== 1) return false;
+      await transaction.userToken.create({
+        data: {
+          user_id: data.user_id,
+          refresh_token: data.refreshToken,
+          expires_date: data.expires_date,
+        },
+      });
+      return true;
+    });
+  }
+
+  async deleteByRefreshToken(refreshToken: string): Promise<void> {
+    await prisma.userToken.deleteMany({ where: { refresh_token: refreshToken } });
+  }
+
   async create({
     user_id,
     expires_date,

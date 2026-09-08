@@ -1,7 +1,8 @@
 export interface DashboardAppointment {
   id: string; customerId: string; customerName: string;
-  total: number; subtotal: number; discount: number; appointmentDate: Date;
-  paymentStatus: 'PAID' | 'PENDING'; paymentMethod: string | null;
+  paidAmount: number; total: number; subtotal: number; discount: number; appointmentDate: Date;
+  paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL'; paymentMethod: string | null;
+  payments: { method: string | null; appliedCents: number }[];
   items: { serviceId: string | null; professionalId: string | null; serviceName: string; professionalName: string; value: number }[];
 }
 export interface IDashboardRawData {

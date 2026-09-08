@@ -7,6 +7,8 @@ export interface AppointmentProps {
   subtotal: number;
   discount: number;
   total: number;
+  paidAmount?: number;
+  paidAt?: Date | null;
   paymentMethod:
     | "DEBIT_CARD"
     | "CREDIT_CARD"
@@ -14,7 +16,7 @@ export interface AppointmentProps {
     | "PIX"
     | "OTHER"
     | null;
-  paymentStatus: "PAID" | "PENDING";
+  paymentStatus: "PAID" | "PENDING" | "PARTIAL";
   notes?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -57,6 +59,8 @@ export class Appointment {
   get total(): number {
     return this.props.total;
   }
+  get paidAmount(): number { return this.props.paidAmount ?? 0; }
+  get paidAt(): Date | null { return this.props.paidAt ?? null; }
   get paymentMethod() {
     return this.props.paymentMethod;
   }
@@ -110,7 +114,7 @@ export class Appointment {
     this.props.paymentMethod = method;
   }
 
-  set paymentStatus(status: "PAID" | "PENDING") {
+  set paymentStatus(status: "PAID" | "PENDING" | "PARTIAL") {
     this.props.paymentStatus = status;
   }
 

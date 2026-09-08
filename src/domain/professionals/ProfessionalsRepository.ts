@@ -148,6 +148,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
       },
       include: {
         authorizedServices: {
+          where: { service: { userId, deletedAt: null } },
           include: {
             service: {
               select: { id: true, name: true },

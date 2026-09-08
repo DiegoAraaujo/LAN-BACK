@@ -13,6 +13,7 @@ import type { IJWTProvider } from "../../../shared/providers/JsonwebtokenProvide
 interface IRequest {
   email: string;
   password: string;
+  remember?: boolean;
 }
 
 interface IResponse {
@@ -28,7 +29,7 @@ class LoginService {
     private jwtProvider: IJWTProvider,
   ) {}
 
-  async execute({ email, password }: IRequest): Promise<IResponse> {
+  async execute({ email, password, remember = false }: IRequest): Promise<IResponse> {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
@@ -57,7 +58,7 @@ class LoginService {
     );
 
     const refreshToken = await this.jwtProvider.sign(
-      { email },
+      { email, remember },
       authConfig.jwt.refresh_token_secret,
       authConfig.jwt.refresh_token_expires_in,
       user.id!,

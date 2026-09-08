@@ -36,7 +36,7 @@ export class ListCustomers {
 
     const mapped = data.map((raw) => {
       const totalSpent = raw.appointments.reduce((acc, app) => {
-        return acc + Number(app.total);
+        return acc + Number(app.paidAmount);
       }, 0);
 
       const customerEntity = new Customer({

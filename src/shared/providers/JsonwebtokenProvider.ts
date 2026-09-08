@@ -1,4 +1,5 @@
 import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 
 export interface IPayload {
   [key: string]: any;
@@ -22,6 +23,7 @@ export class JsonwebtokenProvider implements IJWTProvider {
   ): Promise<string> {
     const options: SignOptions = {
       subject,
+      jwtid: randomUUID(),
       expiresIn: expiresIn as any,
     };
 

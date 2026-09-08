@@ -24,10 +24,10 @@ export const createAppointmentBodySchema = z.object({
 
 export const updateAppointmentBodySchema = createAppointmentBodySchema
   .omit({ 
-    customerId: true 
+    customerId: true, paymentStatus: true, paymentMethod: true
   })
-  .partial()
-  // PATCH must preserve the existing discount when only changing payment status.
+  .partial().strict()
+  // Payments are recorded separately; omitted discounts remain unchanged.
   .extend({ discount: z.number().min(0, 'Discount cannot be negative.').optional() })
   .refine(
     (data) => {

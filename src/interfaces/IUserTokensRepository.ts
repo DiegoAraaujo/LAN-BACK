@@ -13,5 +13,7 @@ export interface IUserTokensRepository {
     refresh_token: string,
   ): Promise<UserToken | null>;
   deleteById(id: string): Promise<void>;
+  deleteByRefreshToken(refreshToken: string): Promise<void>;
+  rotate(id: string, data: ICreateUserTokenDTO): Promise<boolean>;
   findByRefreshToken(refresh_token: string): Promise<UserToken | null>;
 }

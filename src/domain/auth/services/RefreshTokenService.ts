@@ -11,6 +11,7 @@ interface IRequest {
 }
 
 interface IResponse {
+  remember: boolean;
   token: string;
   refreshToken: string;
 }
@@ -23,7 +24,7 @@ export class RefreshTokenService {
 
   async execute({ refreshToken }: IRequest): Promise<IResponse> {
     try {
-      const { sub: user_id, email } = await this.jwtProvider.verify(
+      const { sub: user_id, email, remember } = await this.jwtProvider.verify(
         refreshToken,
         authConfig.jwt.refresh_token_secret,
       );
@@ -33,14 +34,13 @@ export class RefreshTokenService {
           refreshToken,
         );
 
-      if (!userToken) {
+      if (!userToken || userToken.expires_date <= new Date()) {
         throw new AppError(
           "Refresh token does not exist!",
           401,
           "TOKEN_NOT_FOUND",
         );
       }
-      await this.userTokensRepository.deleteById(userToken.id);
 
       const newToken = await this.jwtProvider.sign(
         {},
@@ -50,7 +50,7 @@ export class RefreshTokenService {
       );
 
       const newRefreshToken = await this.jwtProvider.sign(
-        { email },
+        { email, remember: remember === true },
         authConfig.jwt.refresh_token_secret,
         authConfig.jwt.refresh_token_expires_in,
         user_id,
@@ -60,13 +60,17 @@ export class RefreshTokenService {
         .add(authConfig.jwt.refresh_token_expires_days, "days")
         .toDate();
 
-      await this.userTokensRepository.create({
+      const rotated = await this.userTokensRepository.rotate(userToken.id, {
         user_id,
         refreshToken: newRefreshToken,
         expires_date,
       });
+      if (!rotated) {
+        throw new AppError("Invalid or expired refresh token", 401, "TOKEN_INVALID");
+      }
 
       return {
+        remember: remember === true,
         token: newToken,
         refreshToken: newRefreshToken,
       };
