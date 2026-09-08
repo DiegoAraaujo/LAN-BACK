@@ -7,6 +7,7 @@ import type {
 } from "../../interfaces/IAppointmentsRepository.js";
 import { prisma } from "../../shared/database/prisma.js";
 import { Appointment } from "./AppointmentsEntity.js";
+import { businessMonthStart } from '../dashboard/dashboardPeriod.js';
 
 export class AppointmentsRepository implements IAppointmentsRepository {
   async create(
@@ -148,8 +149,8 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         endYear = startYear;
       }
 
-      const startDate = new Date(startYear, startMonth, 1, 0, 0, 0, 0);
-      const endDate = new Date(endYear, endMonth, 1, 0, 0, 0, 0);
+      const startDate = businessMonthStart(startYear, startMonth);
+      const endDate = businessMonthStart(endYear, endMonth);
 
       whereClause.appointmentDate = {
         gte: startDate,

@@ -33,7 +33,10 @@ app.use(
 
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGIN,
+    origin: [
+      ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
+      "http://localhost:3000",
+    ],
   }),
 );
 

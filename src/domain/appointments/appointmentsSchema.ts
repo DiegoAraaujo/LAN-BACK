@@ -27,6 +27,8 @@ export const updateAppointmentBodySchema = createAppointmentBodySchema
     customerId: true 
   })
   .partial()
+  // PATCH must preserve the existing discount when only changing payment status.
+  .extend({ discount: z.number().min(0, 'Discount cannot be negative.').optional() })
   .refine(
     (data) => {
 

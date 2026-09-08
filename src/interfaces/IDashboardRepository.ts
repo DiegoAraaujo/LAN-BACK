@@ -1,20 +1,13 @@
+export interface DashboardAppointment {
+  id: string; customerId: string; customerName: string;
+  total: number; subtotal: number; discount: number; appointmentDate: Date;
+  paymentStatus: 'PAID' | 'PENDING'; paymentMethod: string | null;
+  items: { serviceId: string | null; professionalId: string | null; serviceName: string; professionalName: string; value: number }[];
+}
 export interface IDashboardRawData {
-  appointments: {
-    total: number;
-    appointmentDate: Date;
-  }[];
-  servicesData: {
-    serviceName: string;
-    totalRevenue: number;
-  }[];
+  appointments: DashboardAppointment[]; previousAppointments: DashboardAppointment[]; newCustomers: number;
 }
-
-export interface IGetDashboardRawDataFilters {
-  userId: string;
-  year: number;
-  month?: number | undefined;
-}
-
+export interface IGetDashboardRawDataFilters { userId: string; year: number; month?: number | undefined }
 export interface IDashboardRepository {
   getDashboardRawData(filters: IGetDashboardRawDataFilters): Promise<IDashboardRawData>;
 }

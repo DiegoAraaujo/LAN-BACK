@@ -1,69 +1,73 @@
-import type { IDashboardRepository } from "../../interfaces/IDashboardRepository.js";
+import type { IDashboardRepository, IGetDashboardRawDataFilters, DashboardAppointment } from '../../interfaces/IDashboardRepository.js';
+import { businessDateParts } from './dashboardPeriod.js';
 
-interface IRequest {
-  userId: string;
-  year: number;
-  month?: number | undefined;
+const cents = (n: number) => Math.round(n * 100);
+const money = (n: number) => n / 100;
+function summary(rows: DashboardAppointment[]) {
+  const paid = rows.filter(a => a.paymentStatus === 'PAID');
+  const pending = rows.filter(a => a.paymentStatus === 'PENDING');
+  const paidCents = paid.reduce((s, a) => s + cents(a.total), 0);
+  const pendingCents = pending.reduce((s, a) => s + cents(a.total), 0);
+  return { totalAppointments: rows.length, paidCount: paid.length, pendingCount: pending.length,
+    totalRevenue: money(paidCents), pendingRevenue: money(pendingCents), totalValue: money(paidCents + pendingCents),
+    averageTicket: paid.length ? money(Math.round(paidCents / paid.length)) : 0 };
 }
-
 export class DashboardStats {
   constructor(private dashboardRepository: IDashboardRepository) {}
-
-  async execute({ userId, year, month }: IRequest) {
-    const { appointments, servicesData } =
-      await this.dashboardRepository.getDashboardRawData({
-        userId,
-        year,
-        month,
-      });
-
-    const totalAppointments = appointments.length;
-    const totalRevenue = appointments.reduce((sum, app) => sum + app.total, 0);
-
-    const monthNames = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
-    ];
-
-    const evolutionGraph = monthNames.map((name) => ({
-      month: name,
-      revenue: 0,
+  async execute(filters: IGetDashboardRawDataFilters) {
+    const { appointments, previousAppointments, newCustomers } = await this.dashboardRepository.getDashboardRawData(filters);
+    const cards = { ...summary(appointments), newCustomers };
+    const previous = summary(previousAppointments);
+    const change = (now: number, before: number) => before === 0 ? null : Math.round((now - before) / before * 1000) / 10;
+    const evolutionGraph = Array.from({ length: filters.month ? new Date(Date.UTC(filters.year, filters.month, 0)).getUTCDate() : 12 }, (_, i) => ({
+      month: String(i + 1), revenue: 0, pending: 0,
     }));
-
-    appointments.forEach((app) => {
-      const appMonth = new Date(app.appointmentDate).getMonth();
-
-      if (evolutionGraph[appMonth]) {
-        evolutionGraph[appMonth].revenue += app.total;
+    const services = new Map<string, { serviceName: string; count: number; revenue: number }>();
+    const professionals = new Map<string, { name: string; count: number; revenue: number; ids: Set<string> }>();
+    const customers = new Map<string, { name: string; count: number; revenue: number }>();
+    const payments = new Map<string, { method: string; count: number; revenue: number }>();
+    for (const a of appointments) {
+      const local = businessDateParts(a.appointmentDate);
+      const bucket = evolutionGraph[filters.month ? local.day - 1 : local.month - 1];
+      if (bucket) bucket[a.paymentStatus === 'PAID' ? 'revenue' : 'pending'] += cents(a.total);
+      const customer = customers.get(a.customerId) ?? { name: a.customerName, count: 0, revenue: 0 };
+      customer.count++;
+      if (a.paymentStatus === 'PAID') customer.revenue += cents(a.total);
+      customers.set(a.customerId, customer);
+      if (a.paymentStatus === 'PAID') {
+        const method = a.paymentMethod ?? 'OTHER';
+        const payment = payments.get(method) ?? { method, count: 0, revenue: 0 };
+        payment.count++; payment.revenue += cents(a.total); payments.set(method, payment);
       }
-    });
-
-    evolutionGraph.forEach((item) => {
-      item.revenue = Number(item.revenue.toFixed(2));
-    });
-
-    const servicesPieGraph = servicesData.map((item) => ({
-      serviceName: item.serviceName,
-      revenue: Number(item.totalRevenue.toFixed(2)),
-    }));
-
+      // Allocate net revenue in integer cents and distribute the rounding remainder.
+      const weights = a.items.map(i => cents(i.value));
+      const weightTotal = weights.reduce((s, n) => s + n, 0);
+      const allocations = weights.map(w => weightTotal ? Math.floor(cents(a.total) * w / weightTotal) : 0);
+      let remainder = cents(a.total) - allocations.reduce((s, n) => s + n, 0);
+      for (let i = 0; remainder > 0 && allocations.length; i = (i + 1) % allocations.length) {
+        allocations[i] = (allocations[i] ?? 0) + 1; remainder--;
+      }
+      a.items.forEach((item, index) => {
+        const net = a.paymentStatus === 'PAID' ? allocations[index] ?? 0 : 0;
+        const key = item.serviceId ?? item.serviceName;
+        const service = services.get(key) ?? { serviceName: item.serviceName, count: 0, revenue: 0 };
+        service.count++; service.revenue += net; services.set(key, service);
+        const proKey = item.professionalId ?? item.professionalName;
+        const pro = professionals.get(proKey) ?? { name: item.professionalName, count: 0, revenue: 0, ids: new Set<string>() };
+        pro.ids.add(a.id); pro.count = pro.ids.size; pro.revenue += net; professionals.set(proKey, pro);
+      });
+    }
+    const rank = <T extends { revenue: number; count: number }>(rows: T[]) => rows.sort((a,b) => b.revenue - a.revenue || b.count - a.count).map(r => ({ ...r, revenue: money(r.revenue) }));
+    const compact = (a: DashboardAppointment) => ({ id: a.id, customerName: a.customerName, appointmentDate: a.appointmentDate, total: a.total, paymentStatus: a.paymentStatus, services: a.items.map(i => i.serviceName) });
     return {
-      cards: {
-        totalAppointments,
-        totalRevenue: Number(totalRevenue.toFixed(2)),
-      },
-      evolutionGraph,
-      servicesPieGraph,
+      cards, previous, comparison: { totalValue: change(cards.totalValue, previous.totalValue), revenue: change(cards.totalRevenue, previous.totalRevenue), appointments: change(cards.totalAppointments, previous.totalAppointments), averageTicket: change(cards.averageTicket, previous.averageTicket) },
+      evolutionGraph: evolutionGraph.map(b => ({ ...b, revenue: money(b.revenue), pending: money(b.pending) })),
+      servicesPieGraph: rank([...services.values()]),
+      professionals: rank([...professionals.values()].map(p => ({ name: p.name, count: p.count, revenue: p.revenue }))).slice(0, 5),
+      customers: [...customers.values()].sort((a,b) => b.count - a.count || b.revenue - a.revenue).slice(0, 5).map(c => ({ ...c, revenue: money(c.revenue) })),
+      paymentMethods: rank([...payments.values()]),
+      recentAppointments: appointments.slice(0, 5).map(compact),
+      pendingAppointments: appointments.filter(a => a.paymentStatus === 'PENDING').sort((a,b) => a.appointmentDate.getTime() - b.appointmentDate.getTime()).slice(0, 5).map(compact),
     };
   }
 }

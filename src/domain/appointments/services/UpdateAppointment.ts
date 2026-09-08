@@ -121,7 +121,10 @@ export class UpdateAppointment {
       appointment.discount = input.discount;
     }
 
-    appointment.total = subtotal - appointment.discount;
+    if (appointment.discount < 0 || appointment.discount > subtotal) {
+      throw new AppError('Discount must be between 0 and the subtotal.', 400, 'INVALID_DISCOUNT');
+    }
+    appointment.total = Math.round((subtotal - appointment.discount) * 100) / 100;
 
     if (input.appointmentDate) {
       appointment.appointmentDate = new Date(input.appointmentDate);

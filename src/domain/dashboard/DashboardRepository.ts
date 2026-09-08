@@ -1,71 +1,28 @@
-import type {
-  IDashboardRawData,
-  IDashboardRepository,
-  IGetDashboardRawDataFilters,
-} from "../../interfaces/IDashboardRepository.js";
-import { prisma } from "../../shared/database/prisma.js";
+import type { IDashboardRepository, IGetDashboardRawDataFilters, DashboardAppointment } from '../../interfaces/IDashboardRepository.js';
+import { prisma } from '../../shared/database/prisma.js';
+import { dashboardPeriod } from './dashboardPeriod.js';
 
 export class DashboardRepository implements IDashboardRepository {
-  async getDashboardRawData({
-    userId,
-    year,
-    month,
-  }: IGetDashboardRawDataFilters): Promise<IDashboardRawData> {
-    let startQueryDate = new Date(year, 0, 1);
-    let endQueryDate = new Date(year + 1, 0, 1);
-
-    if (month) {
-      startQueryDate = new Date(year, month - 1, 1);
-      endQueryDate = new Date(year, month, 1);
-    }
-
-    const appointmentsRaw = await prisma.appointment.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        paymentStatus: "PAID",
-        appointmentDate: {
-          gte: startQueryDate,
-          lt: endQueryDate,
+  async getDashboardRawData({ userId, year, month }: IGetDashboardRawDataFilters) {
+    const { start, end, previousStart } = dashboardPeriod(year, month);
+    const [rows, newCustomers] = await prisma.$transaction([
+      prisma.appointment.findMany({
+        where: { userId, deletedAt: null, appointmentDate: { gte: previousStart, lt: end } },
+        select: {
+          id: true, customerId: true, total: true, subtotal: true, discount: true,
+          appointmentDate: true, paymentStatus: true, paymentMethod: true,
+          customer: { select: { name: true } },
+          items: { select: { serviceId: true, professionalId: true, serviceName: true, professionalName: true, value: true } },
         },
-      },
-      select: {
-        total: true,
-        appointmentDate: true,
-      },
-    });
-
-    const appointments = appointmentsRaw.map((app) => ({
-      appointmentDate: app.appointmentDate,
-      total: Number(app.total),
+        orderBy: [{ appointmentDate: 'desc' }, { id: 'asc' }],
+      }),
+      prisma.customer.count({ where: { userId, deletedAt: null, createdAt: { gte: start, lt: end } } }),
+    ]);
+    const normalized: DashboardAppointment[] = rows.map(({ customer, ...row }) => ({
+      ...row, customerName: customer.name, total: Number(row.total), subtotal: Number(row.subtotal),
+      discount: Number(row.discount), items: row.items.map(item => ({ ...item, value: Number(item.value) })),
     }));
-
-    const groupByServices = await prisma.appointmentItem.groupBy({
-      by: ["serviceName"],
-      where: {
-        appointment: {
-          userId,
-          deletedAt: null,
-          paymentStatus: "PAID",
-          appointmentDate: {
-            gte: startQueryDate,
-            lt: endQueryDate,
-          },
-        },
-      },
-      _sum: {
-        value: true,
-      },
-    });
-
-    const servicesData = groupByServices.map((item) => ({
-      serviceName: item.serviceName,
-      totalRevenue: item._sum.value ? Number(item._sum.value) : 0,
-    }));
-
-    return {
-      appointments,
-      servicesData,
-    };
+    return { appointments: normalized.filter(a => a.appointmentDate >= start),
+      previousAppointments: normalized.filter(a => a.appointmentDate < start), newCustomers };
   }
 }
