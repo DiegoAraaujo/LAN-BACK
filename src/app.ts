@@ -20,24 +20,26 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(helmet());
+// Preflight must finish before rate limiting; error responses need CORS too.
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "X-CSRF-Protection"],
+  }),
+);
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
     handler: (req, res) => {
       res.status(429).json({
         message: "Too many requests. Please try again later.",
         code: "TOO_MANY_REQUESTS",
       });
     },
-  }),
-);
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    allowedHeaders: ["Content-Type", "X-CSRF-Protection"],
   }),
 );
 

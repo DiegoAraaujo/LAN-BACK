@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError.js";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 
 export function errorHandler(
   error: Error,
@@ -25,7 +26,23 @@ export function errorHandler(
     });
   }
 
-  console.error("Internal Error:", error);
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError ||
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientUnknownRequestError ||
+    error instanceof Prisma.PrismaClientValidationError ||
+    error instanceof Prisma.PrismaClientRustPanicError
+  ) {
+    console.error("Internal database error:", {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      route: req.route?.path,
+      errorType: error.name,
+      code: "code" in error ? error.code : "errorCode" in error ? error.errorCode : undefined,
+    });
+  } else {
+    console.error("Internal Error:", error);
+  }
 
   return res.status(500).json({
     code: "INTERNAL_ERROR",

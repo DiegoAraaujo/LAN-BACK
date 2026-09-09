@@ -1,3 +1,4 @@
+import type { DatabaseTransaction } from "../../shared/database/prisma.js";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/database/prisma.js";
 import { AppError } from "../../shared/errors/AppError.js";
@@ -21,7 +22,7 @@ export const entrySchema = z.object({
 }).refine(data => data.status === "PENDING" || new Date(data.occurredAt).getTime() <= Date.now() + 60000, "Movimentação paga não pode estar no futuro.")
   .refine(data => !["CREDIT", "OPENING"].includes(data.kind) || data.status === "POSTED", "Crédito e saldo inicial devem estar confirmados.");
 
-export async function financeTransaction<T>(userId: string, work: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+export async function financeTransaction<T>(userId: string, work: (tx: DatabaseTransaction) => Promise<T>): Promise<T> {
   return prisma.$transaction(async tx => {
     // All financial writes for an account share this lock, including appointment edits.
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
@@ -29,12 +30,12 @@ export async function financeTransaction<T>(userId: string, work: (tx: Prisma.Tr
   });
 }
 
-async function creditBalance(tx: Prisma.TransactionClient, userId: string, customerId: string) {
+async function creditBalance(tx: DatabaseTransaction, userId: string, customerId: string) {
   const sum = await tx.financeEntry.aggregate({ where: { userId, customerId, status: "POSTED" }, _sum: { creditCents: true } });
   return sum._sum.creditCents ?? 0;
 }
 
-export async function syncAppointment(tx: Prisma.TransactionClient, userId: string, id: string) {
+export async function syncAppointment(tx: DatabaseTransaction, userId: string, id: string) {
   const appointment = await tx.appointment.findFirst({ where: { id, userId, deletedAt: null } });
   if (!appointment) throw new AppError("Atendimento não encontrado.", 404, "APPOINTMENT_NOT_FOUND");
   const sum = await tx.financeEntry.aggregate({ where: { userId, appointmentId: id, status: "POSTED" }, _sum: { appliedCents: true } });
