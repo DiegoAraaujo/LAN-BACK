@@ -19,16 +19,32 @@ export class DashboardStats {
     const cards = { ...summary(appointments), newCustomers };
     const previous = summary(previousAppointments);
     const change = (now: number, before: number) => before === 0 ? null : Math.round((now - before) / before * 1000) / 10;
-    const evolutionGraph = Array.from({ length: filters.month ? new Date(Date.UTC(filters.year, filters.month, 0)).getUTCDate() : 12 }, (_, i) => ({
+    const custom = !!(filters.dateFrom && filters.dateTo);
+    const rangeStart = custom ? new Date(filters.dateFrom! + 'T00:00:00Z') : null;
+    const rangeEnd = custom ? new Date(filters.dateTo! + 'T00:00:00Z') : null;
+    const monthly = !!(rangeStart && rangeEnd && (rangeEnd.getTime() - rangeStart.getTime()) / 86400000 >= 92);
+    const customBuckets: { month: string; revenue: number; pending: number }[] = [];
+    if (rangeStart && rangeEnd) {
+      const cursor = new Date(rangeStart);
+      if (monthly) cursor.setUTCDate(1);
+      while (cursor <= rangeEnd) {
+        customBuckets.push({ month: cursor.toISOString().slice(0, monthly ? 7 : 10), revenue: 0, pending: 0 });
+        if (monthly) cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+        else cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
+    const evolutionGraph = custom ? customBuckets : Array.from({ length: filters.month ? new Date(Date.UTC(filters.year, filters.month, 0)).getUTCDate() : 12 }, (_, i) => ({
       month: String(i + 1), revenue: 0, pending: 0,
     }));
+    const bucketsByDate = new Map(evolutionGraph.map(bucket => [bucket.month, bucket]));
     const services = new Map<string, { serviceName: string; count: number; revenue: number }>();
     const professionals = new Map<string, { name: string; count: number; revenue: number; ids: Set<string> }>();
     const customers = new Map<string, { name: string; count: number; revenue: number }>();
     const payments = new Map<string, { method: string; count: number; revenue: number }>();
     for (const a of appointments) {
       const local = businessDateParts(a.appointmentDate);
-      const bucket = evolutionGraph[filters.month ? local.day - 1 : local.month - 1];
+      const keyDate = `${local.year}-${String(local.month).padStart(2, '0')}${monthly ? '' : '-' + String(local.day).padStart(2, '0')}`;
+      const bucket = custom ? bucketsByDate.get(keyDate) : evolutionGraph[filters.month ? local.day - 1 : local.month - 1];
       if (bucket) { bucket.revenue += cents(a.paidAmount); bucket.pending += cents(a.total)-cents(a.paidAmount); }
       const customer = customers.get(a.customerId) ?? { name: a.customerName, count: 0, revenue: 0 };
       customer.count++;

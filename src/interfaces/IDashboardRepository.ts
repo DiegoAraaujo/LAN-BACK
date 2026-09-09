@@ -8,7 +8,7 @@ export interface DashboardAppointment {
 export interface IDashboardRawData {
   appointments: DashboardAppointment[]; previousAppointments: DashboardAppointment[]; newCustomers: number;
 }
-export interface IGetDashboardRawDataFilters { userId: string; year: number; month?: number | undefined }
+export interface IGetDashboardRawDataFilters { userId: string; year: number; month?: number | undefined; dateFrom?: string | undefined; dateTo?: string | undefined }
 export interface IDashboardRepository {
   getDashboardRawData(filters: IGetDashboardRawDataFilters): Promise<IDashboardRawData>;
 }
