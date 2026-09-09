@@ -3,8 +3,8 @@ import { prisma } from '../../shared/database/prisma.js';
 import { dashboardPeriod } from './dashboardPeriod.js';
 
 export class DashboardRepository implements IDashboardRepository {
-  async getDashboardRawData({ userId, year, month }: IGetDashboardRawDataFilters) {
-    const { start, end, previousStart } = dashboardPeriod(year, month);
+  async getDashboardRawData({ userId, year, month, dateFrom, dateTo }: IGetDashboardRawDataFilters) {
+    const { start, end, previousStart } = dashboardPeriod(year, month, dateFrom, dateTo);
     const [rows, newCustomers] = await prisma.$transaction([
       prisma.appointment.findMany({
         where: { userId, deletedAt: null, appointmentDate: { gte: previousStart, lt: end } },
