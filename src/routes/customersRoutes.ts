@@ -8,6 +8,9 @@ customersRoutes.get("/", (req, res) => customersController.list(req, res));
 customersRoutes.get("/dashboard", (req, res) =>
   customersController.dashboard(req, res),
 );
+customersRoutes.get("/loyalty", (req, res) =>
+  customersController.loyalty(req, res),
+);
 customersRoutes.patch("/:id", (req, res) =>
   customersController.update(req, res),
 );

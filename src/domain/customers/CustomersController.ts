@@ -10,6 +10,7 @@ import {
   updateCustomerSchema,
 } from "./customerSchema.js";
 import type { GetCustomerDashboard } from "./services/GetCustomerDashboard.js";
+import type { GetCustomerLoyaltyReport } from "./services/GetCustomerLoyaltyReport.js";
 
 export class CustomersController {
   constructor(
@@ -18,6 +19,7 @@ export class CustomersController {
     private removeCustomer: RemoveCustomer,
     private updateCustomer: UpdateCustomer,
     private getCustomerDashboard: GetCustomerDashboard,
+    private getCustomerLoyaltyReport: GetCustomerLoyaltyReport,
   ) {}
 
   async create(req: Request, res: Response): Promise<Response> {
@@ -87,6 +89,11 @@ export class CustomersController {
     });
 
     return res.status(200).json(dashboard);
+  }
+
+  async loyalty(req: Request, res: Response): Promise<Response> {
+    const data = await this.getCustomerLoyaltyReport.execute({ userId: req.user.id });
+    return res.status(200).json({ data });
   }
 
   async remove(req: Request<{ id: string }>, res: Response): Promise<Response> {

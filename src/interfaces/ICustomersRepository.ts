@@ -13,6 +13,14 @@ export type CustomerWithStats = Prisma.CustomerGetPayload<{
   };
 }>;
 
+export interface CustomerLoyaltyStats {
+  customerId: string;
+  visits: number;
+  totalSpent: number;
+  lastVisit: Date;
+  customer: Customer;
+}
+
 export interface ICustomersRepository {
   create(customer: Customer): Promise<Customer>;
   findContactByTypeAndValue(
@@ -28,6 +36,7 @@ export interface ICustomersRepository {
     inactive: number;
     newThisMonth: number;
   }>;
+  getLoyaltyRanking(userId: string, limit: number): Promise<CustomerLoyaltyStats[]>;
   findAllWithStats(
     userId: string,
     skip: number,

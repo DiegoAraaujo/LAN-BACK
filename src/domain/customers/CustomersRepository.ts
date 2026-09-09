@@ -4,10 +4,50 @@ import { AppError } from "../../shared/errors/AppError.js";
 import { Customer } from "./CustomerEntity.js";
 import type {
   CustomerWithStats,
+  CustomerLoyaltyStats,
   ICustomersRepository,
 } from "../../interfaces/ICustomersRepository.js";
 
 class CustomersRepository implements ICustomersRepository {
+async getLoyaltyRanking(userId: string, limit: number): Promise<CustomerLoyaltyStats[]> {
+  const ranking = await prisma.appointment.groupBy({
+    by: ["customerId"],
+    where: {
+      userId,
+      deletedAt: null,
+      appointmentDate: { lte: new Date() },
+      customer: { deletedAt: null },
+    },
+    _count: { id: true },
+    _sum: { paidAmount: true },
+    _max: { appointmentDate: true },
+    orderBy: [
+      { _sum: { paidAmount: "desc" } },
+      { _count: { id: "desc" } },
+    ],
+    take: limit,
+  });
+
+  const customers = await prisma.customer.findMany({
+    where: { userId, deletedAt: null, id: { in: ranking.map(item => item.customerId) } },
+    include: { contacts: true },
+  });
+  const customersById = new Map(customers.map(customer => [customer.id, customer]));
+
+  return ranking.flatMap(item => {
+    const raw = customersById.get(item.customerId);
+    const lastVisit = item._max.appointmentDate;
+    if (!raw || !lastVisit) return [];
+    return [{
+      customerId: item.customerId,
+      visits: item._count.id,
+      totalSpent: Number(item._sum.paidAmount ?? 0),
+      lastVisit,
+      customer: new Customer({ ...raw }),
+    }];
+  });
+}
+
 async create(customer: Customer): Promise<Customer> {
   const created = await prisma.customer.create({
     data: {
