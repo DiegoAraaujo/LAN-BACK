@@ -168,6 +168,7 @@ model AppointmentItem {
 enum CustomerStatus {
   ACTIVE
   INACTIVE
+  OCCASIONAL
 }
 
 enum PaymentMethod {

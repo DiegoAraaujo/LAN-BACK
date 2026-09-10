@@ -7,7 +7,7 @@ interface IRequest {
   userId: string;
   name: string;
   address?: string | undefined;
-  status: "ACTIVE" | "INACTIVE";
+  status: "ACTIVE" | "INACTIVE" | "OCCASIONAL";
   contacts?: {
     type: "WHATSAPP" | "INSTAGRAM";
     value: string;

@@ -7,6 +7,7 @@ import { RemoveCustomer } from "./services/RemoveCustomer.js";
 import { UpdateCustomer } from "./services/UpdateCustomer.js";
 import {
   createCustomerSchema,
+  customerStatusSchema,
   updateCustomerSchema,
 } from "./customerSchema.js";
 import type { GetCustomerDashboard } from "./services/GetCustomerDashboard.js";
@@ -38,6 +39,7 @@ export class CustomersController {
   async list(req: Request, res: Response): Promise<Response> {
     const userId = req.user.id;
 
+    const status = customerStatusSchema.optional().parse(req.query.status);
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const search =
@@ -48,6 +50,7 @@ export class CustomersController {
       page,
       limit,
       search,
+      status,
     });
 
     return res.status(200).json({

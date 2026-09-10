@@ -34,6 +34,7 @@ export interface ICustomersRepository {
     total: number;
     active: number;
     inactive: number;
+    occasional: number;
     newThisMonth: number;
   }>;
   getLoyaltyRanking(userId: string, limit: number): Promise<CustomerLoyaltyStats[]>;
@@ -42,6 +43,7 @@ export interface ICustomersRepository {
     skip: number,
     take: number,
     search?: string,
+    status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL",
   ): Promise<{ data: CustomerWithStats[]; total: number }>;
   update(customer: Customer): Promise<Customer>;
 }

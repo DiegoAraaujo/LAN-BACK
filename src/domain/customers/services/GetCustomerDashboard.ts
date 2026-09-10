@@ -8,6 +8,7 @@ interface IResponse {
   total: number;
   active: number;
   inactive: number;
+  occasional: number;
   newThisMonth: number;
 }
 

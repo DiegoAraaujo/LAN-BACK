@@ -150,6 +150,7 @@ async create(customer: Customer): Promise<Customer> {
     skip: number,
     take: number,
     search?: string,
+    status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL",
   ): Promise<{ data: CustomerWithStats[]; total: number }> {
     const searchFilter = search
       ? {
@@ -166,6 +167,7 @@ async create(customer: Customer): Promise<Customer> {
           userId,
           deletedAt: null,
           ...searchFilter,
+          ...(status ? { status } : {}),
         },
       }),
 
@@ -174,6 +176,7 @@ async create(customer: Customer): Promise<Customer> {
           userId,
           deletedAt: null,
           ...searchFilter,
+          ...(status ? { status } : {}),
         },
         include: {
           contacts: true,
@@ -197,13 +200,14 @@ async create(customer: Customer): Promise<Customer> {
     total: number;
     active: number;
     inactive: number;
+    occasional: number;
     newThisMonth: number;
   }> {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [total, active, inactive, newThisMonth] = await Promise.all([
+    const [total, active, inactive, newThisMonth, occasional] = await Promise.all([
       prisma.customer.count({
         where: { userId, deletedAt: null },
       }),
@@ -233,9 +237,11 @@ async create(customer: Customer): Promise<Customer> {
           },
         },
       }),
+      prisma.customer.count({ where: { userId, deletedAt: null, status: "OCCASIONAL" } }),
     ]);
 
     return {
+      occasional,
       total,
       active,
       inactive,

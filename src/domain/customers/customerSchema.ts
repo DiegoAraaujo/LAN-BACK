@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const customerStatusSchema = z.enum(["ACTIVE", "INACTIVE", "OCCASIONAL"]);
+
 const contactSchema = z.object({
   type: z.enum(["WHATSAPP", "INSTAGRAM"]),
   value: z.string().min(1, "Contact value is required"),
@@ -10,7 +12,7 @@ export const createCustomerSchema = z.object({
 
   address: z.string().min(2, "Address is too short").optional(),
 
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional().default("ACTIVE"),
+  status: customerStatusSchema.optional().default("ACTIVE"),
 
   contacts: z
     .array(contactSchema)
@@ -28,7 +30,7 @@ export const updateCustomerSchema = z.object({
 
   address: z.string().min(2).optional(),
 
-  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+  status: customerStatusSchema.optional(),
 
   contacts: z
     .array(contactSchema)

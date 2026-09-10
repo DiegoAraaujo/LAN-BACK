@@ -6,6 +6,7 @@ interface IRequest {
   page: number;
   limit: number;
   search?: string | undefined;
+  status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL" | undefined;
 }
 
 interface IResponse {
@@ -24,6 +25,7 @@ export class ListCustomers {
     page = 1,
     limit = 10,
     search,
+    status,
   }: IRequest): Promise<IResponse> {
     const skip = (page - 1) * limit;
 
@@ -32,6 +34,7 @@ export class ListCustomers {
       skip,
       limit,
       search,
+      status,
     );
 
     const mapped = data.map((raw) => {

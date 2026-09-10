@@ -9,7 +9,7 @@ export interface ICustomerProps {
   name: string;
   address?: string | null;
   contacts?: IContact[];
-  status: "ACTIVE" | "INACTIVE";
+  status: "ACTIVE" | "INACTIVE" | "OCCASIONAL";
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null | undefined;
@@ -47,7 +47,7 @@ export class Customer {
     return this.props.address ?? null;
   }
 
-  get status(): "ACTIVE" | "INACTIVE" {
+  get status(): "ACTIVE" | "INACTIVE" | "OCCASIONAL" {
     return this.props.status;
   }
 
@@ -75,7 +75,7 @@ export class Customer {
     this.props.address = address;
   }
 
-  set status(status: "ACTIVE" | "INACTIVE") {
+  set status(status: "ACTIVE" | "INACTIVE" | "OCCASIONAL") {
     this.props.status = status;
   }
 
