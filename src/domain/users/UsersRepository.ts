@@ -8,6 +8,7 @@ class UsersRepository implements IUserRepository {
       data: {
         name: user.name,
         email: user.email,
+        profileImage: user.profileImage,
         password: user.password,
       },
     });
@@ -45,6 +46,7 @@ class UsersRepository implements IUserRepository {
       data: {
         name: user.name,
         email: user.email,
+        profileImage: user.profileImage,
       },
     });
 

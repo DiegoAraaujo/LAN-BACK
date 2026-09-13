@@ -6,7 +6,6 @@ import { normalizeContact } from "../../../shared/utils/normalizeContact.js";
 interface IRequest {
   userId: string;
   name: string;
-  profileImage?: string | null | undefined;
   address?: string | undefined;
   status: "ACTIVE" | "INACTIVE" | "OCCASIONAL";
   contacts?: {
@@ -21,7 +20,6 @@ export class CreateCustomer {
   async execute({
     userId,
     name,
-    profileImage,
     address,
     status,
     contacts,
@@ -52,7 +50,6 @@ export class CreateCustomer {
     const customer = new Customer({
       userId,
       name,
-      profileImage: profileImage ?? null,
       address: address ?? null,
       status,
       ...(normalizedContacts &&
