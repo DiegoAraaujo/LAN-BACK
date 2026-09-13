@@ -207,27 +207,12 @@ async create(customer: Customer): Promise<Customer> {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [total, active, inactive, newThisMonth, occasional] = await Promise.all([
-      prisma.customer.count({
+    const [statusCounts, newThisMonth] = await Promise.all([
+      prisma.customer.groupBy({
+        by: ["status"],
         where: { userId, deletedAt: null },
+        _count: { _all: true },
       }),
-
-      prisma.customer.count({
-        where: {
-          userId,
-          deletedAt: null,
-          status: "ACTIVE",
-        },
-      }),
-
-      prisma.customer.count({
-        where: {
-          userId,
-          deletedAt: null,
-          status: "INACTIVE",
-        },
-      }),
-
       prisma.customer.count({
         where: {
           userId,
@@ -237,8 +222,13 @@ async create(customer: Customer): Promise<Customer> {
           },
         },
       }),
-      prisma.customer.count({ where: { userId, deletedAt: null, status: "OCCASIONAL" } }),
     ]);
+
+    const counts = new Map(statusCounts.map(item => [item.status, item._count._all]));
+    const active = counts.get("ACTIVE") ?? 0;
+    const inactive = counts.get("INACTIVE") ?? 0;
+    const occasional = counts.get("OCCASIONAL") ?? 0;
+    const total = statusCounts.reduce((sum, item) => sum + item._count._all, 0);
 
     return {
       occasional,

@@ -7,6 +7,7 @@ import { dashboardPeriod } from "../dashboard/dashboardPeriod.js";
 export const searchSchema = z.object({
   openOnly: z.enum(["true"]).optional(),
   search: z.string().max(200).optional(), serviceId: z.string().uuid().optional(),
+  serviceIds: z.string().transform(value => value.split(',').filter(Boolean)).pipe(z.array(z.string().uuid()).max(50)).optional(),
   professionalId: z.string().uuid().optional(), customerId: z.string().uuid().optional(),
   paymentStatus: z.enum(["PAID", "PENDING", "PARTIAL"]).optional(), paymentMethod: methodSchema.optional(),
   dateFrom: z.string().date().optional(), dateTo: z.string().date().optional(), dateType: z.enum(["appointment", "payment"]).default("appointment"),
@@ -18,6 +19,7 @@ export function dateRange(from?: string, to?: string) {
   return { ...(from ? { gte: new Date(`${from}T00:00:00-03:00`) } : {}), ...(to ? { lt: new Date(new Date(`${to}T00:00:00-03:00`).getTime() + 86400000) } : {}) };
 }
 export async function searchAppointments(userId: string, filters: z.infer<typeof searchSchema>) {
+  const serviceIds = filters.serviceIds ?? (filters.serviceId ? [filters.serviceId] : []);
   let dates = dateRange(filters.dateFrom, filters.dateTo);
   if (!filters.dateFrom && !filters.dateTo && (filters.year || filters.month)) {
     const p = dashboardPeriod(filters.year ?? new Date().getFullYear(), filters.month);
@@ -31,7 +33,7 @@ export async function searchAppointments(userId: string, filters: z.infer<typeof
     ...(filters.paymentStatus ? { paymentStatus: filters.paymentStatus } : filters.openOnly ? { paymentStatus: { not: "PAID" } } : {}),
     ...(filters.dateType === "appointment" ? { appointmentDate: dates } : {}),
     ...(filters.dateType === "payment" || filters.paymentMethod ? { financeEntries: { some: paymentWhere } } : {}),
-    ...((filters.serviceId || filters.professionalId) ? { items: { some: { ...(filters.serviceId ? { serviceId: filters.serviceId } : {}), ...(filters.professionalId ? { professionalId: filters.professionalId } : {}) } } } : {}),
+    ...((serviceIds.length || filters.professionalId) ? { items: { some: { ...(serviceIds.length ? { serviceId: { in: serviceIds } } : {}), ...(filters.professionalId ? { professionalId: filters.professionalId } : {}) } } } : {}),
   };
   return prisma.$transaction(async tx => {
     const [rows, total, totalPending, sums] = await Promise.all([
@@ -41,16 +43,16 @@ export async function searchAppointments(userId: string, filters: z.infer<typeof
       tx.appointment.aggregate({ where, _sum: { total: true, paidAmount: true } }),
     ]);
     const summary = { totalValue: cents(sums._sum.total ?? 0), paidValue: cents(sums._sum.paidAmount ?? 0), pendingValue: cents(sums._sum.total ?? 0)-cents(sums._sum.paidAmount ?? 0), serviceValue: 0 };
-    const filteredItems = filters.serviceId || filters.professionalId
+    const filteredItems = serviceIds.length || filters.professionalId
       ? await tx.appointment.findMany({ where, select: { total: true, items: { select: { value: true, serviceId: true, professionalId: true } } } }) : [];
-    if (!filters.serviceId && !filters.professionalId) summary.serviceValue = summary.totalValue;
+    if (!serviceIds.length && !filters.professionalId) summary.serviceValue = summary.totalValue;
     for (const a of filteredItems) {
       const weights = a.items.map(i => cents(i.value));
       const sum = weights.reduce((s,n) => s+n,0);
       const allocations = weights.map(w => sum ? Math.floor(cents(a.total) * w / sum) : 0);
       let remainder = cents(a.total) - allocations.reduce((s,n) => s+n,0);
       for (let i = 0; remainder > 0 && allocations.length; i = (i+1)%allocations.length) { allocations[i]!++; remainder--; }
-      a.items.forEach((item,i) => { if ((!filters.serviceId || filters.serviceId === item.serviceId) && (!filters.professionalId || filters.professionalId === item.professionalId)) summary.serviceValue += allocations[i] ?? 0; });
+      a.items.forEach((item,i) => { if ((!serviceIds.length || (!!item.serviceId && serviceIds.includes(item.serviceId))) && (!filters.professionalId || filters.professionalId === item.professionalId)) summary.serviceValue += allocations[i] ?? 0; });
     }
     return { data: rows.map(a => ({
       ...a, customerName: a.customer.name, total: Number(a.total), subtotal: Number(a.subtotal), discount: Number(a.discount),
