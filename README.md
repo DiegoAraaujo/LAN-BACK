@@ -53,7 +53,7 @@ A API ficará disponível em `http://localhost:3333`. Verifique com `GET /health
 | --- | --- |
 | `npm run dev` | Executa a API em desenvolvimento com watch |
 | `npm run build` | Gera o Prisma Client e compila o TypeScript |
-| `npm run start` | Executa o código compilado em `dist` |
+| `npm run start` | Aplica migrations pendentes e executa o código compilado em `dist` |
 | `npm run db:deploy` | Aplica migrations pendentes no banco configurado |
 
 ## Recursos da API
@@ -98,10 +98,10 @@ Com Neon, prefira a URL com pool de conexões. O cliente adiciona `connect_timeo
 Configuração recomendada:
 
 - Build command: `npm install && npm run build`
-- Start command: `npm run start`
+- Start command: `npm run start` (aplica as migrations pendentes automaticamente)
 - Health check: `/health`
 
-Configure `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` e `NODE_ENV=production`. A variável `PORT` é fornecida pelo Render. Após adicionar uma migration, execute `npm run db:deploy` contra o banco de produção.
+Configure `DATABASE_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` e `NODE_ENV=production`. A variável `PORT` é fornecida pelo Render. O script de inicialização aplica as migrations antes de iniciar a API; `npm run db:deploy` continua disponível para execução manual.
 
 O ambiente publicado utiliza `https://api.jdbarbeariatapuio.com.br`, enquanto o front utiliza `https://app.jdbarbeariatapuio.com.br`.
 

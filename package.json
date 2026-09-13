@@ -6,6 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "db:deploy": "prisma migrate deploy",
+    "prestart": "prisma migrate deploy",
     "start": "node dist/server.js"
   },
   "keywords": [],
