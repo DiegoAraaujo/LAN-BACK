@@ -134,7 +134,9 @@ export class FinanceService {
     return prisma.$transaction(async tx => {
       if (!await tx.customer.findFirst({ where: { id: customerId, userId, deletedAt: null } })) throw new AppError("Cliente não encontrado.", 404, "CUSTOMER_NOT_FOUND");
       const appointments = await tx.appointment.findMany({ where: { userId, customerId, deletedAt: null }, orderBy: { appointmentDate: "desc" }, include: { items: true } });
-      const history = await tx.financeEntry.findMany({ where: { userId, customerId }, orderBy: { createdAt: "desc" }, take: 100, include: { reversal: { select: { id: true } } } });
+      const history = await tx.financeEntry.findMany({ where: { userId, customerId }, orderBy: { createdAt: "desc" }, take: 100, include: {
+        appointment: { select: { appointmentDate: true } }, reversal: { select: { id: true } },
+      } });
       return { credit: (await creditBalance(tx, userId, customerId)) / 100,
         outstanding: appointments.reduce((sum, a) => sum + cents(a.total) - cents(a.paidAmount), 0) / 100,
         appointments: appointments.filter(a => cents(a.total) > cents(a.paidAmount)).map(a => ({ ...a, total: Number(a.total), paidAmount: Number(a.paidAmount), remaining: (cents(a.total) - cents(a.paidAmount)) / 100 })),
@@ -147,7 +149,11 @@ export class FinanceService {
     return prisma.$transaction(async tx => {
       const where: Prisma.FinanceEntryWhereInput = { userId, occurredAt: { gte: from, lt: to }, ...(kind ? { kind } : {}), ...(method ? { method } : {}), ...(status ? { status } : {}) };
       const [data, total, opening, rows, unpaid, due] = await Promise.all([
-        tx.financeEntry.findMany({ where, include: { customer: { select: { name: true } }, reversal: { select: { id: true } } }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 }),
+        tx.financeEntry.findMany({ where, include: {
+          customer: { select: { name: true } },
+          appointment: { select: { appointmentDate: true } },
+          reversal: { select: { id: true } },
+        }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 }),
         tx.financeEntry.count({ where }),
         tx.financeEntry.aggregate({ where: { userId, status: "POSTED", occurredAt: { lt: from } }, _sum: { cashCents: true } }),
         tx.financeEntry.findMany({ where: { userId, status: "POSTED", occurredAt: { gte: from, lt: to } }, select: { cashCents: true } }),
