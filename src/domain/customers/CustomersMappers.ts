@@ -13,6 +13,7 @@ export class CustomerMapper {
     return {
       id: customer.id,
       name: customer.name,
+      profileImage: customer.profileImage,
       address: customer.address ?? null,
       status: customer.status,
       createdAt: customer.createdAt,

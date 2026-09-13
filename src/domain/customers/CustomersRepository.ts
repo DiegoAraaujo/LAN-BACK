@@ -53,6 +53,7 @@ async create(customer: Customer): Promise<Customer> {
     data: {
       userId: customer.userId,
       name: customer.name,
+      profileImage: customer.profileImage,
       address: customer.address ?? null,
       status: customer.status,
 
@@ -123,6 +124,7 @@ async create(customer: Customer): Promise<Customer> {
     where: { id: customer.id },
     data: {
       name: customer.name,
+      profileImage: customer.profileImage,
       address: customer.address ?? null,
       status: customer.status,
 

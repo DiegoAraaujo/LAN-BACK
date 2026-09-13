@@ -7,8 +7,15 @@ const contactSchema = z.object({
   value: z.string().min(1, "Contact value is required"),
 });
 
+const profileImageSchema = z.string()
+  .max(700_000, "Profile image is too large")
+  .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/, "Invalid profile image")
+  .nullable();
+
 export const createCustomerSchema = z.object({
   name: z.string().min(2, "Name must be at least 3 characters long").max(100),
+
+  profileImage: profileImageSchema.optional(),
 
   address: z.string().min(2, "Address is too short").optional(),
 
@@ -27,6 +34,8 @@ export const createCustomerSchema = z.object({
 
 export const updateCustomerSchema = z.object({
   name: z.string().min(3).max(100).optional(),
+
+  profileImage: profileImageSchema.optional(),
 
   address: z.string().min(2).optional(),
 

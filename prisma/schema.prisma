@@ -39,6 +39,7 @@ model UserToken {
 model Customer {
   id           String           @id @default(uuid())
   name         String
+  profileImage String?
   address      String?
   status       CustomerStatus   @default(ACTIVE)
   deletedAt    DateTime?

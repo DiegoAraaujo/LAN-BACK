@@ -44,7 +44,7 @@ app.use(
 );
 
 app.use(browserSecurity);
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 app.use("/users", usersRoutes);
 app.use("/sessions", sessionsRoutes);
