@@ -7,7 +7,6 @@ export interface ICustomerProps {
   id?: string;
   userId: string;
   name: string;
-  profileImage?: string | null;
   address?: string | null;
   contacts?: IContact[];
   status: "ACTIVE" | "INACTIVE" | "OCCASIONAL";
@@ -40,10 +39,6 @@ export class Customer {
     return this.props.name;
   }
 
-  get profileImage(): string | null {
-    return this.props.profileImage ?? null;
-  }
-
   get contacts(): IContact[] {
     return this.props.contacts ?? [];
   }
@@ -70,10 +65,6 @@ export class Customer {
 
   set name(name: string) {
     this.props.name = name;
-  }
-
-  set profileImage(profileImage: string | null) {
-    this.props.profileImage = profileImage;
   }
 
   set contacts(contacts: IContact[]) {

@@ -2,6 +2,7 @@ export interface IUserProps {
   id?: string;
   name: string;
   email: string;
+  profileImage?: string | null;
   password: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -30,6 +31,9 @@ class User {
   get password(): string {
     return this.props.password;
   }
+  get profileImage(): string | null {
+    return this.props.profileImage ?? null;
+  }
   get createdAt(): Date | undefined {
     return this.props.createdAt;
   }
@@ -50,6 +54,9 @@ class User {
       throw new Error("A valid email is required.");
     }
     this.props.email = value.toLowerCase().trim();
+  }
+  set profileImage(value: string | null) {
+    this.props.profileImage = value;
   }
 
   set password(value: string) {

@@ -5,6 +5,7 @@ export class UserMapper {
     return {
       name: user.name,
       email: user.email,
+      profileImage: user.profileImage,
       createdAt: user.createdAt,
     };
   }

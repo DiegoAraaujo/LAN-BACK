@@ -5,6 +5,7 @@ import { AppError } from "../../../shared/errors/AppError.js";
 interface IUpdateUserRequest {
   name?: string | undefined;
   email?: string | undefined;
+  profileImage?: string | null | undefined;
 }
 type IResponse = User;
 
@@ -34,6 +35,9 @@ class UpdateUserService {
 
     if (data.name) {
       user.name = data.name;
+    }
+    if (data.profileImage !== undefined) {
+      user.profileImage = data.profileImage;
     }
 
     return await this.userRepository.update(user);

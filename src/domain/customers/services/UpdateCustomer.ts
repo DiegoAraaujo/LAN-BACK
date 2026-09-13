@@ -7,7 +7,6 @@ interface IRequest {
   id: string;
   userId: string;
   name?: string | undefined;
-  profileImage?: string | null | undefined;
   address?: string | undefined;
   status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL" | undefined;
   contacts?:
@@ -64,10 +63,6 @@ export class UpdateCustomer {
 
     if (data.name !== undefined) {
       customer.name = data.name;
-    }
-
-    if (data.profileImage !== undefined) {
-      customer.profileImage = data.profileImage;
     }
 
     if (data.address !== undefined) {
