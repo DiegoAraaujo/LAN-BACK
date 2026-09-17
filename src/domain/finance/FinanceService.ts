@@ -9,10 +9,15 @@ export const methodSchema = z.enum(["PIX", "CASH", "DEBIT_CARD", "CREDIT_CARD", 
 const amount = z.number().finite().min(0).max(999999.99).multipleOf(0.01);
 const pastDate = z.string().datetime().refine(value => new Date(value).getTime() <= Date.now() + 60000, "Data de recebimento não pode estar no futuro.");
 export const paymentSchema = z.object({
-  requestId: z.string().uuid(), received: amount, useCredit: amount.default(0),
-  excess: z.enum(["CHANGE", "CREDIT"]), method: methodSchema,
+  requestId: z.string().uuid(), received: amount.optional(), useCredit: amount.default(0),
+  payments: z.array(z.object({ amount: amount.refine(value => value > 0), method: methodSchema })).max(5).optional(),
+  excess: z.enum(["CHANGE", "CREDIT"]), method: methodSchema.optional(),
   occurredAt: pastDate, description: z.string().trim().max(300).default("Pagamento de atendimento"),
-}).refine(data => data.received + data.useCredit > 0, "Informe um pagamento ou crédito.");
+}).superRefine((data, context) => {
+  const payments = data.payments ?? (data.received !== undefined && data.method ? [{ amount: data.received, method: data.method }] : []);
+  if (payments.reduce((sum, payment) => sum + payment.amount, 0) + data.useCredit <= 0) context.addIssue({ code: "custom", message: "Informe um pagamento ou crédito." });
+  if (new Set(payments.map(payment => payment.method)).size !== payments.length) context.addIssue({ code: "custom", message: "Não repita a mesma forma de pagamento." });
+});
 export const entrySchema = z.object({
   requestId: z.string().uuid(), kind: z.enum(["INCOME", "EXPENSE", "OPENING", "CREDIT"]),
   amount: amount.refine(value => value > 0), status: z.enum(["POSTED", "PENDING"]).default("POSTED"),
@@ -60,21 +65,41 @@ export class FinanceService {
       const appointment = await tx.appointment.findFirst({ where: { id: appointmentId, userId, deletedAt: null } });
       if (!appointment) throw new AppError("Atendimento não encontrado.", 404, "APPOINTMENT_NOT_FOUND");
       const remaining = cents(appointment.total) - cents(appointment.paidAmount);
-      const credit = cents(data.useCredit), received = cents(data.received);
+      const payments = data.payments ?? (data.received !== undefined && data.method ? [{ amount: data.received, method: data.method }] : []);
+      const paymentCents = payments.map(payment => ({ method: payment.method, amount: cents(payment.amount) }));
+      const credit = cents(data.useCredit), received = paymentCents.reduce((sum, payment) => sum + payment.amount, 0);
       if (remaining <= 0 || credit > remaining || credit > await creditBalance(tx, userId, appointment.customerId)) {
         throw new AppError("Confira o valor em aberto e o crédito disponível.", 409, "PAYMENT_CONFLICT");
       }
-      const applied = Math.min(remaining, received + credit);
       const excess = Math.max(0, received + credit - remaining);
-      const entry = await tx.financeEntry.create({ data: {
-        userId, customerId: appointment.customerId, appointmentId, requestId: data.requestId,
-        kind: "PAYMENT", description: data.description, category: "Atendimentos",
-        cashCents: received - (data.excess === "CHANGE" ? excess : 0),
-        creditCents: (data.excess === "CREDIT" ? excess : 0) - credit,
-        appliedCents: applied, method: received > 0 ? data.method : null, occurredAt: new Date(data.occurredAt),
-      } });
+      const netCash = paymentCents.map(payment => ({ ...payment }));
+      let changeLeft = data.excess === "CHANGE" ? excess : 0;
+      for (let index = netCash.length - 1; index >= 0 && changeLeft > 0; index--) {
+        const deduction = Math.min(netCash[index]!.amount, changeLeft);
+        netCash[index]!.amount -= deduction;
+        changeLeft -= deduction;
+      }
+      let cashApplicationLeft = Math.max(0, Math.min(received, remaining - credit));
+      const plans: { method: z.infer<typeof methodSchema> | null; cashCents: number; creditCents: number; appliedCents: number }[] = [];
+      if (credit > 0) plans.push({ method: null, cashCents: 0, creditCents: -credit, appliedCents: credit });
+      netCash.forEach(payment => {
+        if (payment.amount <= 0) return;
+        const appliedCents = Math.min(payment.amount, cashApplicationLeft);
+        cashApplicationLeft -= appliedCents;
+        plans.push({ method: payment.method, cashCents: payment.amount, creditCents: 0, appliedCents });
+      });
+      if (data.excess === "CREDIT" && excess > 0) plans[plans.length - 1]!.creditCents += excess;
+      const entries = [];
+      for (let index = 0; index < plans.length; index++) {
+        const plan = plans[index]!;
+        entries.push(await tx.financeEntry.create({ data: {
+          userId, customerId: appointment.customerId, appointmentId, requestId: index === 0 ? data.requestId : `${data.requestId}:${index}`,
+          kind: "PAYMENT", description: data.description, category: "Atendimentos",
+          ...plan, occurredAt: new Date(data.occurredAt),
+        } }));
+      }
       await syncAppointment(tx, userId, appointmentId);
-      return { ...entry, change: data.excess === "CHANGE" ? excess / 100 : 0 };
+      return { entries, change: data.excess === "CHANGE" ? excess / 100 : 0 };
     });
   }
 

@@ -6,7 +6,8 @@ export interface DashboardAppointment {
   items: { serviceId: string | null; professionalId: string | null; serviceName: string; professionalName: string; value: number }[];
 }
 export interface IDashboardRawData {
-  appointments: DashboardAppointment[]; previousAppointments: DashboardAppointment[]; newCustomers: number;
+  appointments: DashboardAppointment[]; previousAppointments: DashboardAppointment[];
+  monthToDateAppointments: DashboardAppointment[]; newCustomers: number;
 }
 export interface IGetDashboardRawDataFilters { userId: string; year: number; month?: number | undefined; dateFrom?: string | undefined; dateTo?: string | undefined }
 export interface IDashboardRepository {

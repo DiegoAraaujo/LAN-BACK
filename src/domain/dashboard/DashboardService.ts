@@ -15,14 +15,15 @@ function summary(rows: DashboardAppointment[]) {
 export class DashboardStats {
   constructor(private dashboardRepository: IDashboardRepository) {}
   async execute(filters: IGetDashboardRawDataFilters) {
-    const { appointments, previousAppointments, newCustomers } = await this.dashboardRepository.getDashboardRawData(filters);
+    const { appointments, previousAppointments, monthToDateAppointments, newCustomers } = await this.dashboardRepository.getDashboardRawData(filters);
     const cards = { ...summary(appointments), newCustomers };
     const previous = summary(previousAppointments);
     const change = (now: number, before: number) => before === 0 ? null : Math.round((now - before) / before * 1000) / 10;
     const custom = !!(filters.dateFrom && filters.dateTo);
     const rangeStart = custom ? new Date(filters.dateFrom! + 'T00:00:00Z') : null;
     const rangeEnd = custom ? new Date(filters.dateTo! + 'T00:00:00Z') : null;
-    const monthly = !!(rangeStart && rangeEnd && (rangeEnd.getTime() - rangeStart.getTime()) / 86400000 >= 92);
+    const rangeDays = rangeStart && rangeEnd ? Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1 : 0;
+    const monthly = rangeDays > 31;
     const customBuckets: { month: string; revenue: number; pending: number }[] = [];
     if (rangeStart && rangeEnd) {
       const cursor = new Date(rangeStart);
@@ -75,9 +76,24 @@ export class DashboardStats {
     }
     const rank = <T extends { revenue: number; count: number }>(rows: T[]) => rows.sort((a,b) => b.revenue - a.revenue || b.count - a.count).map(r => ({ ...r, revenue: money(r.revenue) }));
     const compact = (a: DashboardAppointment) => ({ id: a.id, customerId: a.customerId, customerName: a.customerName, appointmentDate: a.appointmentDate, total: a.total, paidAmount: a.paidAmount, remaining: a.total-a.paidAmount, paymentStatus: a.paymentStatus, services: a.items.map(i => i.serviceName) });
+    const today = businessDateParts(new Date());
+    const monthToDate = Array.from({ length: 12 }, (_, offset) => {
+      const date = new Date(Date.UTC(today.year, today.month - 1 - offset, 1));
+      const year = date.getUTCFullYear();
+      const month = date.getUTCMonth() + 1;
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const throughDay = Math.min(today.day, lastDay);
+      const rows = monthToDateAppointments.filter(a => {
+        const local = businessDateParts(a.appointmentDate);
+        return local.year === year && local.month === month && local.day <= throughDay;
+      });
+      const totals = summary(rows);
+      return { year, month, throughDay, appointments: totals.totalAppointments, received: totals.totalRevenue, pending: totals.pendingRevenue };
+    });
     return {
       cards, previous, comparison: { totalValue: change(cards.totalValue, previous.totalValue), revenue: change(cards.totalRevenue, previous.totalRevenue), appointments: change(cards.totalAppointments, previous.totalAppointments), averageTicket: change(cards.averageTicket, previous.averageTicket) },
       evolutionGraph: evolutionGraph.map(b => ({ ...b, revenue: money(b.revenue), pending: money(b.pending) })),
+      monthToDate,
       servicesPieGraph: rank([...services.values()]),
       professionals: rank([...professionals.values()].map(p => ({ name: p.name, count: p.count, revenue: p.revenue }))).slice(0, 5),
       customers: [...customers.values()].sort((a,b) => b.count - a.count || b.revenue - a.revenue).slice(0, 5).map(c => ({ ...c, revenue: money(c.revenue) })),
