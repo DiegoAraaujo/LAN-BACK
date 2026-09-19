@@ -13,6 +13,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
         name: professional.name,
         address: professional.address,
         phone: professional.phone,
+        ...(professional.profileImage !== undefined && { profileImage: professional.profileImage }),
 
         ...(professional.servicesIds &&
           professional.servicesIds.length > 0 && {
@@ -35,7 +36,8 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
       userId: created.userId,
       name: created.name,
       address: created.address,
-      phone: created.phone,
+        phone: created.phone,
+        profileImage: created.profileImage,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
       deletedAt: created.deletedAt,
@@ -50,6 +52,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
         name: professional.name,
         address: professional.address,
         phone: professional.phone,
+        ...(professional.profileImage !== undefined && { profileImage: professional.profileImage }),
         ...(professional.servicesIds && {
           authorizedServices: {
             deleteMany: {},

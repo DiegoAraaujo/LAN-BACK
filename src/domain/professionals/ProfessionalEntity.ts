@@ -4,6 +4,7 @@ export interface IProfessionalProps {
   name: string;
   address: string;
   phone: string;
+  profileImage?: string | null;
   deletedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -53,6 +54,14 @@ export class Professional {
 
   set phone(phone: string) {
     this.props.phone = phone;
+  }
+
+  get profileImage(): string | null | undefined {
+    return this.props.profileImage;
+  }
+
+  set profileImage(profileImage: string | null) {
+    this.props.profileImage = profileImage;
   }
 
   get deletedAt(): Date | null | undefined {
