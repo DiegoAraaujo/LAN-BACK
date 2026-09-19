@@ -10,6 +10,7 @@ export class ProfessionalMappers {
       name: professional.name,
       phone: professional.phone,
       address: professional.address,
+      profileImage: professional.profileImage ?? null,
       createdAt: professional.createdAt,
       ...(services && services.length > 0 && { services }),
     };

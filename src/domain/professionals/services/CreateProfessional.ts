@@ -9,6 +9,7 @@ interface IRequest {
   name: string;
   address: string;
   phone: string;
+  profileImage?: string | null | undefined;
   servicesIds?: string[];
 }
 
@@ -23,6 +24,7 @@ export class CreateProfessional {
     name,
     address,
     phone,
+    profileImage,
     servicesIds,
   }: IRequest): Promise<Professional> {
     const validatedIds = await validateServices(this.servicesRepository, userId, servicesIds ?? []);
@@ -42,6 +44,7 @@ export class CreateProfessional {
       name: name,
       address: address,
       phone: phone,
+      ...(profileImage !== undefined && { profileImage }),
       servicesIds: validatedIds,
     });
 

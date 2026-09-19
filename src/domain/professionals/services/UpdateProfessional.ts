@@ -10,6 +10,7 @@ interface IRequest {
   name?: string | undefined;
   address?: string | undefined;
   phone?: string | undefined;
+  profileImage?: string | null | undefined;
   servicesIds?: string[] | undefined;
 }
 
@@ -25,6 +26,7 @@ export class UpdateProfessional {
     name,
     address,
     phone,
+    profileImage,
     servicesIds,
   }: IRequest): Promise<Professional> {
     const professional = await this.professionalsRepository.findById(
@@ -59,6 +61,7 @@ export class UpdateProfessional {
 
     if (name) professional.name = name;
     if (address) professional.address = address;
+    if (profileImage !== undefined) professional.profileImage = profileImage;
     professional.servicesIds = validatedIds;
 
     return await this.professionalsRepository.update(professional);
