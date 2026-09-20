@@ -4,6 +4,7 @@ export interface IUserProps {
   email: string;
   profileImage?: string | null;
   password: string;
+  sessionVersion?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,6 +31,9 @@ class User {
   }
   get password(): string {
     return this.props.password;
+  }
+  get sessionVersion(): number {
+    return this.props.sessionVersion ?? 0;
   }
   get profileImage(): string | null {
     return this.props.profileImage ?? null;

@@ -27,6 +27,16 @@ export class UserTokensRepository implements IUserTokensRepository {
     await prisma.userToken.deleteMany({ where: { refresh_token: refreshToken } });
   }
 
+  async revokeAllForUser(userId: string): Promise<void> {
+    await prisma.$transaction([
+      prisma.userToken.deleteMany({ where: { user_id: userId } }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { sessionVersion: { increment: 1 } },
+      }),
+    ]);
+  }
+
   async create({
     user_id,
     expires_date,

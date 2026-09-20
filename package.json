@@ -36,5 +36,9 @@
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.4.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "esbuild": "0.28.2"
   }
 }

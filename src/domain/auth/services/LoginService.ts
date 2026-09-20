@@ -51,14 +51,14 @@ class LoginService {
     }
 
     const token = await this.jwtProvider.sign(
-      {},
+      { sessionVersion: user.sessionVersion },
       authConfig.jwt.access_token_secret,
       authConfig.jwt.access_token_expires_in,
       user.id!,
     );
 
     const refreshToken = await this.jwtProvider.sign(
-      { email, remember },
+      { email, remember, sessionVersion: user.sessionVersion },
       authConfig.jwt.refresh_token_secret,
       authConfig.jwt.refresh_token_expires_in,
       user.id!,
