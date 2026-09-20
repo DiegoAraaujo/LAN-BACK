@@ -7,6 +7,7 @@ import { createSessionSchema } from "./schemas/authSchema.js";
 import { readCookie, refreshCookie, setSessionCookies, clearSessionCookies } from "../../shared/http/sessionCookies.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import type { LogoutService } from "./services/LogoutService.js";
+import type { RevokeAllSessionsService } from "./services/RevokeAllSessionsService.js";
 import { UserMapper } from "../users/UsersMappers.js";
 
 class AuthController {
@@ -14,6 +15,7 @@ class AuthController {
     private loginService: LoginService,
     private refreshTokenService: RefreshTokenService,
     private logoutService: LogoutService,
+    private revokeAllSessionsService: RevokeAllSessionsService,
   ) {}
 
   async login(request: Request, response: Response) {
@@ -45,6 +47,12 @@ class AuthController {
   async logout(request: Request, response: Response) {
     const refreshToken = readCookie(request, refreshCookie);
     if (refreshToken) await this.logoutService.execute({ refreshToken });
+    clearSessionCookies(response);
+    return response.status(204).send();
+  }
+
+  async revokeAllSessions(request: Request, response: Response) {
+    await this.revokeAllSessionsService.execute(request.user.id);
     clearSessionCookies(response);
     return response.status(204).send();
   }

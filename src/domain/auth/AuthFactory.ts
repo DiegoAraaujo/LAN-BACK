@@ -5,6 +5,7 @@ import LoginService from "./services/LoginService.js";
 import { RefreshTokenService } from "./services/RefreshTokenService.js";
 import { UserTokensRepository } from "./UserTokensRepository.js";
 import { LogoutService } from "./services/LogoutService.js";
+import { RevokeAllSessionsService } from "./services/RevokeAllSessionsService.js";
 
 const usersTokenRepository = new UserTokensRepository();
 const usersRepository = new UsersRepository();
@@ -19,10 +20,12 @@ const loginService = new LoginService(
 const refreshTokenService = new RefreshTokenService(
   usersTokenRepository,
   jwtProvider,
+  usersRepository,
 );
 
 export const authController = new AuthController(
   loginService,
   refreshTokenService,
   new LogoutService(usersTokenRepository),
+  new RevokeAllSessionsService(usersTokenRepository),
 );
