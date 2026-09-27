@@ -241,9 +241,21 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     const found = await prisma.appointment.findUnique({ where: { id } });
     if (!found) return;
     await financeTransaction(found.userId, async tx => {
-      const count = await tx.financeEntry.count({ where: { appointmentId: id } });
-      if (count) throw new AppError("Atendimentos com histórico financeiro não podem ser excluídos.", 409, "PAYMENT_CONFLICT");
-      await tx.appointment.update({ where: { id }, data: { deletedAt: new Date() } });
+      const current = await tx.appointment.findFirst({ where: { id, userId: found.userId } });
+      if (!current) return;
+      const where = { userId: current.userId, appointmentId: id };
+      const [balance, removedCredit] = await Promise.all([
+        tx.financeEntry.aggregate({ where: { userId: current.userId, customerId: current.customerId, status: "POSTED" }, _sum: { creditCents: true } }),
+        tx.financeEntry.aggregate({ where: { ...where, status: "POSTED" }, _sum: { creditCents: true } }),
+      ]);
+      if ((balance._sum.creditCents ?? 0) - (removedCredit._sum.creditCents ?? 0) < 0) {
+        throw new AppError("O crédito gerado por este atendimento já foi usado. Estorne essa utilização antes de excluir o atendimento.", 409, "PAYMENT_CONFLICT");
+      }
+      // Remove reversal references before deleting the complete financial history.
+      await tx.financeEntry.updateMany({ where: { ...where, reversalOfId: { not: null } }, data: { reversalOfId: null } });
+      await tx.financeEntry.deleteMany({ where });
+      // Appointment items are removed by the database's cascading relation.
+      await tx.appointment.delete({ where: { id } });
     });
   }
 }
