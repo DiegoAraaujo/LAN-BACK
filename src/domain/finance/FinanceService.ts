@@ -170,7 +170,7 @@ export class FinanceService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
-  async list(userId: string, from: Date, to: Date, page: number, kind?: string, method?: z.infer<typeof methodSchema>, status?: string) {
+  async list(userId: string, from: Date, to: Date, page: number, kind?: string, method?: z.infer<typeof methodSchema>, status?: string, limit = 25) {
     return prisma.$transaction(async tx => {
       const where: Prisma.FinanceEntryWhereInput = { userId, occurredAt: { gte: from, lt: to }, ...(kind ? { kind } : {}), ...(method ? { method } : {}), ...(status ? { status } : {}) };
       const [data, total, opening, rows, unpaid, due] = await Promise.all([
@@ -178,7 +178,7 @@ export class FinanceService {
           customer: { select: { name: true } },
           appointment: { select: { appointmentDate: true } },
           reversal: { select: { id: true } },
-        }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], skip: (page - 1) * 25, take: 25 }),
+        }, orderBy: [{ occurredAt: "desc" }, { id: "desc" }], skip: (page - 1) * limit, take: limit }),
         tx.financeEntry.count({ where }),
         tx.financeEntry.aggregate({ where: { userId, status: "POSTED", occurredAt: { lt: from } }, _sum: { cashCents: true } }),
         tx.financeEntry.findMany({ where: { userId, status: "POSTED", occurredAt: { gte: from, lt: to } }, select: { cashCents: true } }),

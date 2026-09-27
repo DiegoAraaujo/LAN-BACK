@@ -6,10 +6,11 @@ export const financeRoutes = Router();
 const id = z.string().uuid();
 financeRoutes.get("/", async (req, res) => {
   const q = z.object({ from: z.string().date(), to: z.string().date(), page: z.coerce.number().int().min(1).max(100000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(25),
     kind: z.enum(["PAYMENT", "CREDIT", "INCOME", "EXPENSE", "OPENING", "REVERSAL"]).optional(), method: methodSchema.optional(), status: z.enum(["POSTED", "PENDING", "CANCELLED"]).optional(),
   }).refine(v => v.from <= v.to, "Período inválido.").parse(req.query);
   const dates = dateRange(q.from, q.to);
-  res.json(await financeService.list(req.user.id, dates.gte!, dates.lt!, q.page, q.kind, q.method, q.status));
+  res.json(await financeService.list(req.user.id, dates.gte!, dates.lt!, q.page, q.kind, q.method, q.status, q.limit));
 });
 financeRoutes.get("/customers/:id", async (req,res) => { res.json(await financeService.customer(req.user.id, id.parse(req.params.id))); });
 financeRoutes.post("/appointments/:id/payments", async (req,res) => { res.status(201).json(await financeService.pay(req.user.id, id.parse(req.params.id), paymentSchema.parse(req.body))); });
