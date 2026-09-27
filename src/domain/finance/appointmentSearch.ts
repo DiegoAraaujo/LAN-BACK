@@ -37,7 +37,7 @@ export async function searchAppointments(userId: string, filters: z.infer<typeof
   };
   return prisma.$transaction(async tx => {
     const [rows, total, totalPending, sums] = await Promise.all([
-      tx.appointment.findMany({ where, include: { items: true, customer: { select: { name: true } } }, orderBy: [{ appointmentDate: "desc" }, { id: "desc" }], take: filters.limit, skip: (filters.page-1)*filters.limit }),
+      tx.appointment.findMany({ where, include: { items: true, customer: { select: { name: true } }, financeEntries: { where: { kind: "PAYMENT", status: "POSTED", reversal: null }, select: { method: true, creditCents: true } } }, orderBy: [{ appointmentDate: "desc" }, { id: "desc" }], take: filters.limit, skip: (filters.page-1)*filters.limit }),
       tx.appointment.count({ where }),
       tx.appointment.count({ where: { AND: [where, { paymentStatus: { not: "PAID" } }] } }),
       tx.appointment.aggregate({ where, _sum: { total: true, paidAmount: true } }),
@@ -54,8 +54,10 @@ export async function searchAppointments(userId: string, filters: z.infer<typeof
       for (let i = 0; remainder > 0 && allocations.length; i = (i+1)%allocations.length) { allocations[i]!++; remainder--; }
       a.items.forEach((item,i) => { if ((!serviceIds.length || (!!item.serviceId && serviceIds.includes(item.serviceId))) && (!filters.professionalId || filters.professionalId === item.professionalId)) summary.serviceValue += allocations[i] ?? 0; });
     }
-    return { data: rows.map(a => ({
+    return { data: rows.map(({ financeEntries, ...a }) => ({
       ...a, customerName: a.customer.name, total: Number(a.total), subtotal: Number(a.subtotal), discount: Number(a.discount),
+      paymentMethods: [...new Set(financeEntries.flatMap(entry => entry.method ? [entry.method] : []))],
+      usesCredit: financeEntries.some(entry => entry.creditCents < 0),
       paidAmount: Number(a.paidAmount), remaining: (cents(a.total)-cents(a.paidAmount))/100,
       items: a.items.map(i => ({ ...i, value: Number(i.value) })),
     })), total, totalPending,
