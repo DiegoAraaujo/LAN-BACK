@@ -1,6 +1,6 @@
-import type { IUserRepository } from "../IUserRepository.js";
-import User from "../UserEntity.js";
-import { AppError } from "../../../shared/errors/AppError.js";
+import type { IUserRepository } from '../IUserRepository.js';
+import User from '../UserEntity.js';
+import { AppError } from '../../../shared/errors/AppError.js';
 
 interface IUpdateUserRequest {
   name?: string | undefined;
@@ -16,18 +16,14 @@ class UpdateUserService {
     const user = await this.userRepository.findById(id);
 
     if (!user) {
-      throw new AppError("User not found.", 404, "USER_NOT_FOUND");
+      throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
     }
 
     if (data.email && data.email !== user.email) {
       const emailExists = await this.userRepository.findByEmail(data.email);
 
       if (emailExists) {
-        throw new AppError(
-          "Email already in use.",
-          400,
-          "EMAIL_ALREADY_EXISTS",
-        );
+        throw new AppError('Email already in use.', 400, 'EMAIL_ALREADY_EXISTS');
       }
 
       user.email = data.email;

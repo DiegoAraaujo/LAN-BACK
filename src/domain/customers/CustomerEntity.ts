@@ -1,5 +1,5 @@
 export interface IContact {
-  type: "WHATSAPP" | "INSTAGRAM";
+  type: 'WHATSAPP' | 'INSTAGRAM';
   value: string;
 }
 
@@ -9,7 +9,7 @@ export interface ICustomerProps {
   name: string;
   address?: string | null;
   contacts?: IContact[];
-  status: "ACTIVE" | "INACTIVE" | "OCCASIONAL";
+  status: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL';
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null | undefined;
@@ -26,7 +26,7 @@ export class Customer {
 
   get id(): string {
     if (!this.props.id) {
-      throw new Error("Customer ID is required but was not provided.");
+      throw new Error('Customer ID is required but was not provided.');
     }
     return this.props.id;
   }
@@ -47,7 +47,7 @@ export class Customer {
     return this.props.address ?? null;
   }
 
-  get status(): "ACTIVE" | "INACTIVE" | "OCCASIONAL" {
+  get status(): 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL' {
     return this.props.status;
   }
 
@@ -75,7 +75,7 @@ export class Customer {
     this.props.address = address;
   }
 
-  set status(status: "ACTIVE" | "INACTIVE" | "OCCASIONAL") {
+  set status(status: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL') {
     this.props.status = status;
   }
 

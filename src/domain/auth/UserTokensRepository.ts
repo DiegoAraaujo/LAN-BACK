@@ -1,9 +1,9 @@
-import type { UserToken } from "@prisma/client";
+import type { UserToken } from '@prisma/client';
 import type {
   ICreateUserTokenDTO,
   IUserTokensRepository,
-} from "../../interfaces/IUserTokensRepository.js";
-import { prisma } from "../../shared/database/prisma.js";
+} from '../../interfaces/IUserTokensRepository.js';
+import { prisma } from '../../shared/database/prisma.js';
 
 export class UserTokensRepository implements IUserTokensRepository {
   async rotate(id: string, data: ICreateUserTokenDTO): Promise<boolean> {
@@ -37,11 +37,7 @@ export class UserTokensRepository implements IUserTokensRepository {
     ]);
   }
 
-  async create({
-    user_id,
-    expires_date,
-    refreshToken,
-  }: ICreateUserTokenDTO): Promise<UserToken> {
+  async create({ user_id, expires_date, refreshToken }: ICreateUserTokenDTO): Promise<UserToken> {
     const userToken = await prisma.userToken.create({
       data: {
         user_id,

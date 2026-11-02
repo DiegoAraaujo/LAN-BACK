@@ -1,25 +1,35 @@
-import { z } from "zod";
+import {
+  nameSchema,
+  emailSchema,
+  passwordSchema,
+  photoSchema,
+} from '../../shared/validation/fields.js';
+import { z } from 'zod';
 
-export const createUserSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters long").max(100),
-  email: z.string().email("Invalid email format"),
-  password: z.string().min(8, "Password must be at least 6 characters long"),
-});
+export const createUserSchema = z
+  .object({
+    name: nameSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    confirmPassword: passwordSchema,
+    terms: z.literal(true, { error: 'Aceite os termos.' }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'As senhas nao coincidem.',
+  });
 
 export type CreateUserBody = z.infer<typeof createUserSchema>;
 
 export const updateUserSchema = z
   .object({
-    name: z
-      .string()
-      .min(3, "Name must be at least 3 characters long")
-      .max(100)
-      .optional(),
-    email: z.string().email("Invalid email format").optional(),
-    profileImage: z.string().max(700_000, "The profile photo is too large").regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/, "Invalid profile photo format").nullable().optional(),
+    name: nameSchema.optional(),
+    email: emailSchema.optional(),
+    profileImage: photoSchema,
   })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided for update",
+  .strict()
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: 'Informe ao menos um campo.',
   });
 
 export type UpdateUserBody = z.infer<typeof updateUserSchema>;

@@ -9,14 +9,8 @@ export interface AppointmentProps {
   total: number;
   paidAmount?: number;
   paidAt?: Date | null;
-  paymentMethod:
-    | "DEBIT_CARD"
-    | "CREDIT_CARD"
-    | "CASH"
-    | "PIX"
-    | "OTHER"
-    | null;
-  paymentStatus: "PAID" | "PENDING" | "PARTIAL";
+  paymentMethod: 'DEBIT_CARD' | 'CREDIT_CARD' | 'CASH' | 'PIX' | 'OTHER' | null;
+  paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL';
   notes?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -34,7 +28,7 @@ export class Appointment {
 
   get id(): string {
     if (!this.props.id) {
-      throw new Error("Appointment ID has not been initialized.");
+      throw new Error('Appointment ID has not been initialized.');
     }
     return this.props.id;
   }
@@ -59,8 +53,12 @@ export class Appointment {
   get total(): number {
     return this.props.total;
   }
-  get paidAmount(): number { return this.props.paidAmount ?? 0; }
-  get paidAt(): Date | null { return this.props.paidAt ?? null; }
+  get paidAmount(): number {
+    return this.props.paidAmount ?? 0;
+  }
+  get paidAt(): Date | null {
+    return this.props.paidAt ?? null;
+  }
   get paymentMethod() {
     return this.props.paymentMethod;
   }
@@ -108,13 +106,11 @@ export class Appointment {
     this.props.total = total;
   }
 
-  set paymentMethod(
-    method: "DEBIT_CARD" | "CREDIT_CARD" | "CASH" | "PIX" | "OTHER" | null,
-  ) {
+  set paymentMethod(method: 'DEBIT_CARD' | 'CREDIT_CARD' | 'CASH' | 'PIX' | 'OTHER' | null) {
     this.props.paymentMethod = method;
   }
 
-  set paymentStatus(status: "PAID" | "PENDING" | "PARTIAL") {
+  set paymentStatus(status: 'PAID' | 'PENDING' | 'PARTIAL') {
     this.props.paymentStatus = status;
   }
 

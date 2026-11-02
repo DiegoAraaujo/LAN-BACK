@@ -1,17 +1,17 @@
-import { AppError } from "../../../shared/errors/AppError.js";
-import { Customer } from "../CustomerEntity.js";
-import type { ICustomersRepository } from "../../../interfaces/ICustomersRepository.js";
-import { normalizeContact } from "../../../shared/utils/normalizeContact.js";
+import { AppError } from '../../../shared/errors/AppError.js';
+import { Customer } from '../CustomerEntity.js';
+import type { ICustomersRepository } from '../../../interfaces/ICustomersRepository.js';
+import { normalizeContact } from '../../../shared/utils/normalizeContact.js';
 
 interface IRequest {
   id: string;
   userId: string;
   name?: string | undefined;
   address?: string | undefined;
-  status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL" | undefined;
+  status?: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL' | undefined;
   contacts?:
     | {
-        type: "WHATSAPP" | "INSTAGRAM";
+        type: 'WHATSAPP' | 'INSTAGRAM';
         value: string;
       }[]
     | undefined;
@@ -20,20 +20,11 @@ interface IRequest {
 export class UpdateCustomer {
   constructor(private customerRepository: ICustomersRepository) {}
 
-  async execute({
-    id,
-    userId,
-    contacts,
-    ...data
-  }: IRequest): Promise<Customer> {
+  async execute({ id, userId, contacts, ...data }: IRequest): Promise<Customer> {
     const customer = await this.customerRepository.findById(id, userId);
 
     if (!customer) {
-      throw new AppError(
-        "Customer not found or access denied.",
-        404,
-        "CUSTOMER_NOT_FOUND",
-      );
+      throw new AppError('Customer not found or access denied.', 404, 'CUSTOMER_NOT_FOUND');
     }
 
     const normalizedContacts = contacts?.map((c) => ({
@@ -50,11 +41,7 @@ export class UpdateCustomer {
         );
 
         if (exists && exists.customerId !== customer.id) {
-          throw new AppError(
-            `${contact.type} already in use.`,
-            400,
-            "CONTACT_ALREADY_EXISTS",
-          );
+          throw new AppError(`${contact.type} already in use.`, 400, 'CONTACT_ALREADY_EXISTS');
         }
       }
 

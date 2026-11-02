@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
-import { Customer } from "../domain/customers/CustomerEntity.js";
+import { Prisma } from '@prisma/client';
+import { Customer } from '../domain/customers/CustomerEntity.js';
 
 export type CustomerWithStats = Prisma.CustomerGetPayload<{
   include: {
@@ -24,7 +24,7 @@ export interface CustomerLoyaltyStats {
 export interface ICustomersRepository {
   create(customer: Customer): Promise<Customer>;
   findContactByTypeAndValue(
-    type: "WHATSAPP" | "INSTAGRAM",
+    type: 'WHATSAPP' | 'INSTAGRAM',
     value: string,
     userId: string,
   ): Promise<{ customerId: string } | null>;
@@ -43,7 +43,7 @@ export interface ICustomersRepository {
     skip: number,
     take: number,
     search?: string,
-    status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL",
+    status?: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL',
   ): Promise<{ data: CustomerWithStats[]; total: number }>;
   update(customer: Customer): Promise<Customer>;
 }

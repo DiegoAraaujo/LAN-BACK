@@ -1,17 +1,14 @@
-import type { Request, Response } from "express";
-import { CustomerMapper } from "./CustomersMappers.js";
+import { customerQuerySchema, recordIdSchema } from '../../shared/validation/queries.js';
+import type { Request, Response } from 'express';
+import { CustomerMapper } from './CustomersMappers.js';
 
-import { CreateCustomer } from "./services/CreateCustomer.js";
-import { ListCustomers } from "./services/ListCustomers.js";
-import { RemoveCustomer } from "./services/RemoveCustomer.js";
-import { UpdateCustomer } from "./services/UpdateCustomer.js";
-import {
-  createCustomerSchema,
-  customerStatusSchema,
-  updateCustomerSchema,
-} from "./customerSchema.js";
-import type { GetCustomerDashboard } from "./services/GetCustomerDashboard.js";
-import type { GetCustomerLoyaltyReport } from "./services/GetCustomerLoyaltyReport.js";
+import { CreateCustomer } from './services/CreateCustomer.js';
+import { ListCustomers } from './services/ListCustomers.js';
+import { RemoveCustomer } from './services/RemoveCustomer.js';
+import { UpdateCustomer } from './services/UpdateCustomer.js';
+import { createCustomerSchema, updateCustomerSchema } from './customerSchema.js';
+import type { GetCustomerDashboard } from './services/GetCustomerDashboard.js';
+import type { GetCustomerLoyaltyReport } from './services/GetCustomerLoyaltyReport.js';
 
 export class CustomersController {
   constructor(
@@ -39,11 +36,7 @@ export class CustomersController {
   async list(req: Request, res: Response): Promise<Response> {
     const userId = req.user.id;
 
-    const status = customerStatusSchema.optional().parse(req.query.status);
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const search =
-      typeof req.query.search === "string" ? req.query.search : undefined;
+    const { status, page, limit, search } = customerQuerySchema.parse(req.query);
 
     const { customers, total } = await this.listCustomers.execute({
       userId,
@@ -70,7 +63,7 @@ export class CustomersController {
   }
 
   async update(req: Request<{ id: string }>, res: Response): Promise<Response> {
-    const { id } = req.params;
+    const id = recordIdSchema.parse(req.params.id);
 
     const userId = req.user.id;
     const data = updateCustomerSchema.parse(req.body);
@@ -100,7 +93,7 @@ export class CustomersController {
   }
 
   async remove(req: Request<{ id: string }>, res: Response): Promise<Response> {
-    const { id } = req.params;
+    const id = recordIdSchema.parse(req.params.id);
     const userId = req.user.id;
 
     await this.removeCustomer.execute({ id, userId });

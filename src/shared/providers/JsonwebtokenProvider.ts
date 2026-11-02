@@ -1,17 +1,12 @@
-import jwt, { type SignOptions, type Secret } from "jsonwebtoken";
-import { randomUUID } from "node:crypto";
+import jwt, { type SignOptions, type Secret } from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 
 export interface IPayload {
   [key: string]: any;
 }
 
 export interface IJWTProvider {
-  sign(
-    payload: IPayload,
-    secret: string,
-    expiresIn: string,
-    subject: string,
-  ): Promise<string>;
+  sign(payload: IPayload, secret: string, expiresIn: string, subject: string): Promise<string>;
   verify(token: string, secret: string): Promise<IPayload>;
 }
 export class JsonwebtokenProvider implements IJWTProvider {
@@ -38,7 +33,7 @@ export class JsonwebtokenProvider implements IJWTProvider {
   public async verify(token: string, secret: string): Promise<IPayload> {
     return new Promise((resolve, reject) => {
       jwt.verify(token, secret as Secret, (err, decoded) => {
-        if (err) return reject(new Error("Invalid token"));
+        if (err) return reject(new Error('Invalid token'));
         return resolve(decoded as IPayload);
       });
     });

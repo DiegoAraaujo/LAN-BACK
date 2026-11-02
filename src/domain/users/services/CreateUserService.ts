@@ -1,7 +1,7 @@
-import { hash } from "bcryptjs";
-import { AppError } from "../../../shared/errors/AppError.js";
-import User from "../UserEntity.js";
-import type { IUserRepository } from "../IUserRepository.js";
+import { hash } from 'bcryptjs';
+import { AppError } from '../../../shared/errors/AppError.js';
+import User from '../UserEntity.js';
+import type { IUserRepository } from '../IUserRepository.js';
 
 interface IRequest {
   name: string;
@@ -17,11 +17,7 @@ class CreateUserService {
     const userAlreadyExists = await this.userRepository.findByEmail(email);
 
     if (userAlreadyExists) {
-      throw new AppError(
-        "This email address is already in use.",
-        400,
-        "EMAIL_ALREADY_EXISTS",
-      );
+      throw new AppError('This email address is already in use.', 400, 'EMAIL_ALREADY_EXISTS');
     }
 
     const hashedPassword = await hash(password, 8);

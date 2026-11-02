@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/database/prisma.js";
-import { Service } from "./ServiceEntity.js";
-import type { IServicesRepository } from "../../interfaces/IServicesRepository.js";
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../shared/database/prisma.js';
+import { Service } from './ServiceEntity.js';
+import type { IServicesRepository } from '../../interfaces/IServicesRepository.js';
 
 export class ServicesRepository implements IServicesRepository {
   async create(service: Service): Promise<Service> {
@@ -49,15 +49,13 @@ export class ServicesRepository implements IServicesRepository {
       },
     });
 
-    return services.map(
-      (s) => new Service({ ...s, price: s.price.toNumber() }),
-    );
+    return services.map((s) => new Service({ ...s, price: s.price.toNumber() }));
   }
 
   async findByName(name: string, userId: string): Promise<Service | null> {
     const service = await prisma.service.findFirst({
       where: {
-        name: { equals: name, mode: "insensitive" },
+        name: { equals: name, mode: 'insensitive' },
         userId,
         deletedAt: null,
       },
@@ -74,15 +72,13 @@ export class ServicesRepository implements IServicesRepository {
         userId,
         deletedAt: null,
         ...(search && {
-          name: { contains: search, mode: "insensitive" },
+          name: { contains: search, mode: 'insensitive' },
         }),
       },
-      orderBy: { name: "asc" },
+      orderBy: { name: 'asc' },
     });
 
-    return services.map(
-      (s) => new Service({ ...s, price: s.price.toNumber() }),
-    );
+    return services.map((s) => new Service({ ...s, price: s.price.toNumber() }));
   }
 
   async delete(id: string): Promise<void> {
@@ -92,10 +88,7 @@ export class ServicesRepository implements IServicesRepository {
     });
   }
 
-  async findByProfessionalId(
-    professionalId: string,
-    userId: string,
-  ): Promise<Service[]> {
+  async findByProfessionalId(professionalId: string, userId: string): Promise<Service[]> {
     const services = await prisma.service.findMany({
       where: {
         userId,
@@ -106,12 +99,10 @@ export class ServicesRepository implements IServicesRepository {
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { name: 'asc' },
     });
 
-    return services.map(
-      (s) => new Service({ ...s, price: s.price.toNumber() }),
-    );
+    return services.map((s) => new Service({ ...s, price: s.price.toNumber() }));
   }
 }
 

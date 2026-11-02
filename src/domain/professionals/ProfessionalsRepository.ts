@@ -1,9 +1,9 @@
 import type {
   IProfessionalsRepository,
   ProfessionalWithServices,
-} from "../../interfaces/IProfessionalsRepository.js";
-import { prisma } from "../../shared/database/prisma.js";
-import { Professional } from "./ProfessionalEntity.js";
+} from '../../interfaces/IProfessionalsRepository.js';
+import { prisma } from '../../shared/database/prisma.js';
+import { Professional } from './ProfessionalEntity.js';
 
 export class ProfessionalsRepository implements IProfessionalsRepository {
   async create(professional: Professional): Promise<Professional> {
@@ -36,8 +36,8 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
       userId: created.userId,
       name: created.name,
       address: created.address,
-        phone: created.phone,
-        profileImage: created.profileImage,
+      phone: created.phone,
+      profileImage: created.profileImage,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
       deletedAt: created.deletedAt,
@@ -115,11 +115,12 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
         }),
     );
   }
-  
-  async findByPhone(phone: string): Promise<Professional | null> {
+
+  async findByPhone(phone: string, userId: string): Promise<Professional | null> {
     const professional = await prisma.professional.findFirst({
       where: {
         phone,
+        userId,
         deletedAt: null,
       },
       include: {
@@ -131,22 +132,17 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
 
     return new Professional({
       ...professional,
-      servicesIds: professional.authorizedServices.map(
-        ({ serviceId }) => serviceId,
-      ),
+      servicesIds: professional.authorizedServices.map(({ serviceId }) => serviceId),
     });
   }
 
-  async findAll(
-    userId: string,
-    search?: string,
-  ): Promise<ProfessionalWithServices[]> {
+  async findAll(userId: string, search?: string): Promise<ProfessionalWithServices[]> {
     const professionals = await prisma.professional.findMany({
       where: {
         userId,
         deletedAt: null,
         ...(search && {
-          name: { contains: search, mode: "insensitive" as const },
+          name: { contains: search, mode: 'insensitive' as const },
         }),
       },
       include: {
@@ -159,7 +155,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { name: 'asc' },
     });
 
     return professionals.map((s) => {
@@ -174,10 +170,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     });
   }
 
-  async findByServiceId(
-    userId: string,
-    serviceId: string,
-  ): Promise<Professional[]> {
+  async findByServiceId(userId: string, serviceId: string): Promise<Professional[]> {
     const professionals = await prisma.professional.findMany({
       where: {
         userId,
@@ -191,7 +184,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
       include: {
         authorizedServices: true,
       },
-      orderBy: { name: "asc" },
+      orderBy: { name: 'asc' },
     });
 
     return professionals.map(
@@ -203,10 +196,7 @@ export class ProfessionalsRepository implements IProfessionalsRepository {
     );
   }
 
-  async hasService(
-    professionalId: string,
-    serviceId: string,
-  ): Promise<boolean> {
+  async hasService(professionalId: string, serviceId: string): Promise<boolean> {
     const professionalService = await prisma.professionalService.findUnique({
       where: {
         professionalId_serviceId: {

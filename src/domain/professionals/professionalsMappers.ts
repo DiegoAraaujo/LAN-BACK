@@ -1,10 +1,7 @@
-import type { Professional } from "./ProfessionalEntity.js";
+import type { Professional } from './ProfessionalEntity.js';
 
 export class ProfessionalMappers {
-  static toResponse(
-    professional: Professional,
-    services?: { id: string; name: String }[],
-  ) {
+  static toResponse(professional: Professional, services?: { id: string; name: String }[]) {
     return {
       id: professional.id,
       name: professional.name,

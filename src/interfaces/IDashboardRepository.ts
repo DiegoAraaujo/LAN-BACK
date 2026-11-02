@@ -1,15 +1,36 @@
 export interface DashboardAppointment {
-  id: string; customerId: string; customerName: string;
-  paidAmount: number; total: number; subtotal: number; discount: number; appointmentDate: Date;
-  paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL'; paymentMethod: string | null;
+  id: string;
+  customerId: string;
+  customerName: string;
+  paidAmount: number;
+  total: number;
+  subtotal: number;
+  discount: number;
+  appointmentDate: Date;
+  paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL';
+  paymentMethod: string | null;
   payments: { method: string | null; appliedCents: number }[];
-  items: { serviceId: string | null; professionalId: string | null; serviceName: string; professionalName: string; value: number }[];
+  items: {
+    serviceId: string | null;
+    professionalId: string | null;
+    serviceName: string;
+    professionalName: string;
+    value: number;
+  }[];
 }
 export interface IDashboardRawData {
-  appointments: DashboardAppointment[]; previousAppointments: DashboardAppointment[];
-  monthToDateAppointments: DashboardAppointment[]; newCustomers: number;
+  appointments: DashboardAppointment[];
+  previousAppointments: DashboardAppointment[];
+  monthToDateAppointments: DashboardAppointment[];
+  newCustomers: number;
 }
-export interface IGetDashboardRawDataFilters { userId: string; year: number; month?: number | undefined; dateFrom?: string | undefined; dateTo?: string | undefined }
+export interface IGetDashboardRawDataFilters {
+  userId: string;
+  year: number;
+  month?: number | undefined;
+  dateFrom?: string | undefined;
+  dateTo?: string | undefined;
+}
 export interface IDashboardRepository {
   getDashboardRawData(filters: IGetDashboardRawDataFilters): Promise<IDashboardRawData>;
 }

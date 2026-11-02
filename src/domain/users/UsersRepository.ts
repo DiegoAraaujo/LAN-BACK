@@ -1,6 +1,6 @@
-import type { IUserRepository } from "./IUserRepository.js";
-import { prisma } from "../../shared/database/prisma.js";
-import User from "./UserEntity.js";
+import type { IUserRepository } from './IUserRepository.js';
+import { prisma } from '../../shared/database/prisma.js';
+import User from './UserEntity.js';
 
 class UsersRepository implements IUserRepository {
   async create(user: User): Promise<User> {
@@ -38,7 +38,7 @@ class UsersRepository implements IUserRepository {
 
   async update(user: User): Promise<User> {
     if (!user.id) {
-      throw new Error("User ID is required for update operation");
+      throw new Error('User ID is required for update operation');
     }
 
     const updated = await prisma.user.update({

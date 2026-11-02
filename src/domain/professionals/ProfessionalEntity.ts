@@ -22,7 +22,7 @@ export class Professional {
   }
 
   get id(): string {
-    if (!this.props.id) throw new Error("Professional ID is undefined.");
+    if (!this.props.id) throw new Error('Professional ID is undefined.');
 
     return this.props.id;
   }

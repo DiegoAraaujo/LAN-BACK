@@ -1,15 +1,16 @@
-import type { Request, Response } from "express";
-import type { CreateProfessional } from "./services/CreateProfessional.js";
-import type { ListProfessionals } from "./services/ListProfessionals.js";
-import type { UpdateProfessional } from "./services/UpdateProfessional.js";
-import type { DeleteProfessional } from "./services/DeleteProfessional.js";
+import { searchQuerySchema } from '../../shared/validation/queries.js';
+import type { Request, Response } from 'express';
+import type { CreateProfessional } from './services/CreateProfessional.js';
+import type { ListProfessionals } from './services/ListProfessionals.js';
+import type { UpdateProfessional } from './services/UpdateProfessional.js';
+import type { DeleteProfessional } from './services/DeleteProfessional.js';
 import {
   createProfessionalSchema,
   professionalIdParamSchema,
   updateProfessionalSchema,
-} from "./professionalsSchema.js";
-import { ProfessionalMappers } from "./professionalsMappers.js";
-import type { ListProfessionalsByServiceId } from "./services/ListProfessionalsByServiceId.js";
+} from './professionalsSchema.js';
+import { ProfessionalMappers } from './professionalsMappers.js';
+import type { ListProfessionalsByServiceId } from './services/ListProfessionalsByServiceId.js';
 
 export class ProfessionalsController {
   constructor(
@@ -32,18 +33,13 @@ export class ProfessionalsController {
       servicesIds: servicesIds || [],
     });
 
-    return response
-      .status(201)
-      .json(ProfessionalMappers.toResponse(professional));
+    return response.status(201).json(ProfessionalMappers.toResponse(professional));
   }
 
   async list(request: Request, response: Response): Promise<Response> {
     const { id: userId } = request.user;
 
-    const search =
-      typeof request.query.search === "string"
-        ? request.query.search
-        : undefined;
+    const { search } = searchQuerySchema.parse(request.query);
 
     const professionals = await this.listProfessionals.execute({
       userId,
@@ -52,17 +48,10 @@ export class ProfessionalsController {
 
     return response
       .status(200)
-      .json(
-        professionals.map((p) =>
-          ProfessionalMappers.toResponse(p.professional, p.services),
-        ),
-      );
+      .json(professionals.map((p) => ProfessionalMappers.toResponse(p.professional, p.services)));
   }
 
-  async listProfessionalsByService(
-    request: Request,
-    response: Response,
-  ): Promise<Response> {
+  async listProfessionalsByService(request: Request, response: Response): Promise<Response> {
     const { id: userId } = request.user;
 
     const { id: serviceId } = professionalIdParamSchema.parse(request.params);
@@ -72,15 +61,10 @@ export class ProfessionalsController {
       serviceId,
     });
 
-    return response
-      .status(200)
-      .json(professionals.map((p) => ProfessionalMappers.toResponse(p)));
+    return response.status(200).json(professionals.map((p) => ProfessionalMappers.toResponse(p)));
   }
 
-  async update(
-    request: Request<{ id: string }>,
-    response: Response,
-  ): Promise<Response> {
+  async update(request: Request<{ id: string }>, response: Response): Promise<Response> {
     const { id } = professionalIdParamSchema.parse(request.params);
     const data = updateProfessionalSchema.parse(request.body);
 
@@ -95,10 +79,7 @@ export class ProfessionalsController {
     return response.status(200).json(ProfessionalMappers.toResponse(updated));
   }
 
-  async remove(
-    request: Request<{ id: string }>,
-    response: Response,
-  ): Promise<Response> {
+  async remove(request: Request<{ id: string }>, response: Response): Promise<Response> {
     const { id } = professionalIdParamSchema.parse(request.params);
     const { id: userId } = request.user;
 

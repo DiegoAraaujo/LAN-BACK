@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.next/
+dist/
+build/
+out/
+coverage/
+.review/
+.vercel/
+.env*
+*.tsbuildinfo
+package-lock.json
+next-env.d.ts
+generated/
+prisma/migrations/
