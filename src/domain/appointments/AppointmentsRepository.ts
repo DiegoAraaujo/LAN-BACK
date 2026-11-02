@@ -1,56 +1,111 @@
-import { financeTransaction, syncAppointment, cents } from "../finance/FinanceService.js";
-import { AppError } from "../../shared/errors/AppError.js";
-import type { Prisma } from "@prisma/client";
+import {
+  financeTransaction,
+  syncAppointment,
+  cents,
+  FinanceService,
+} from '../finance/FinanceService.js';
+import { AppError } from '../../shared/errors/AppError.js';
+import type { Prisma } from '@prisma/client';
 import type {
+  InitialAppointmentPayment,
   IAppointmentsRepository,
   ICreateAppointmentItemInput,
   IFindManyAppointmentsFilters,
   ISearchWithFiltersResponse,
-} from "../../interfaces/IAppointmentsRepository.js";
-import { prisma } from "../../shared/database/prisma.js";
-import { Appointment } from "./AppointmentsEntity.js";
+} from '../../interfaces/IAppointmentsRepository.js';
+import { prisma } from '../../shared/database/prisma.js';
+import { Appointment } from './AppointmentsEntity.js';
 import { businessMonthStart } from '../dashboard/dashboardPeriod.js';
 
 export class AppointmentsRepository implements IAppointmentsRepository {
   async create(
     appointment: Appointment,
     items: ICreateAppointmentItemInput[],
+    initialPayment?: InitialAppointmentPayment,
   ): Promise<Appointment> {
-    const created = await financeTransaction(appointment.userId, async tx => {
-    if (!await tx.customer.findFirst({ where: { id: appointment.customerId, userId: appointment.userId, deletedAt: null } })) {
-      throw new AppError("Customer not found.", 404, "CUSTOMER_NOT_FOUND");
-    }
-    const row = await tx.appointment.create({
-      data: {
-        userId: appointment.userId,
-        customerId: appointment.customerId,
-        registeredById: appointment.registeredById,
-        appointmentDate: appointment.appointmentDate,
-        subtotal: appointment.subtotal,
-        discount: appointment.discount,
-        total: appointment.total,
-        paymentStatus: appointment.paymentStatus,
-        paymentMethod: appointment.paymentMethod,
-        notes: appointment.notes,
+    const created = await financeTransaction(appointment.userId, async (tx) => {
+      if (initialPayment) {
+        const previous = await tx.financeEntry.findUnique({
+          where: {
+            userId_requestId: { userId: appointment.userId, requestId: initialPayment.requestId },
+          },
+        });
+        if (previous) {
+          const existing =
+            previous.kind === 'PAYMENT' && previous.appointmentId
+              ? await tx.appointment.findFirst({
+                  where: {
+                    id: previous.appointmentId,
+                    userId: appointment.userId,
+                    customerId: appointment.customerId,
+                    deletedAt: null,
+                  },
+                })
+              : null;
+          if (!existing)
+            throw new AppError('Identificador de pagamento ja utilizado.', 409, 'PAYMENT_CONFLICT');
+          return existing;
+        }
+      }
+      if (
+        !(await tx.customer.findFirst({
+          where: { id: appointment.customerId, userId: appointment.userId, deletedAt: null },
+        }))
+      ) {
+        throw new AppError('Customer not found.', 404, 'CUSTOMER_NOT_FOUND');
+      }
+      const row = await tx.appointment.create({
+        data: {
+          userId: appointment.userId,
+          customerId: appointment.customerId,
+          registeredById: appointment.registeredById,
+          appointmentDate: appointment.appointmentDate,
+          subtotal: appointment.subtotal,
+          discount: appointment.discount,
+          total: appointment.total,
+          paymentStatus: appointment.paymentStatus,
+          paymentMethod: appointment.paymentMethod,
+          notes: appointment.notes,
 
-        items: {
-          createMany: {
-            data: items.map((item) => ({
-              serviceId: item.serviceId,
-              professionalId: item.professionalId,
-              serviceName: item.serviceName,
-              professionalName: item.professionalName,
-              value: item.value,
-            })),
+          items: {
+            createMany: {
+              data: items.map((item) => ({
+                serviceId: item.serviceId,
+                professionalId: item.professionalId,
+                serviceName: item.serviceName,
+                professionalName: item.professionalName,
+                value: item.value,
+              })),
+            },
           },
         },
-      },
-    });
+      });
 
-    if (appointment.paymentStatus === "PAID" && cents(appointment.total) > 0) {
-      await tx.financeEntry.create({ data: { userId: appointment.userId, customerId: appointment.customerId, appointmentId: row.id, kind: "PAYMENT", description: "Pagamento no cadastro", category: "Atendimentos", cashCents: cents(appointment.total), appliedCents: cents(appointment.total), method: appointment.paymentMethod ?? "OTHER", occurredAt: new Date(), requestId: `initial:${row.id}` } });
-    }
-    return syncAppointment(tx, appointment.userId, row.id);
+      if (!initialPayment && appointment.paymentStatus === 'PAID' && cents(appointment.total) > 0) {
+        await tx.financeEntry.create({
+          data: {
+            userId: appointment.userId,
+            customerId: appointment.customerId,
+            appointmentId: row.id,
+            kind: 'PAYMENT',
+            description: 'Pagamento no cadastro',
+            category: 'Atendimentos',
+            cashCents: cents(appointment.total),
+            appliedCents: cents(appointment.total),
+            method: appointment.paymentMethod ?? 'OTHER',
+            occurredAt: new Date(),
+            requestId: `initial:${row.id}`,
+          },
+        });
+      }
+      if (initialPayment)
+        await new FinanceService().payWithinTransaction(
+          appointment.userId,
+          row.id,
+          initialPayment,
+          tx,
+        );
+      return syncAppointment(tx, appointment.userId, row.id);
     });
 
     return new Appointment({
@@ -65,38 +120,41 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     appointment: Appointment,
     items?: ICreateAppointmentItemInput[],
   ): Promise<Appointment> {
-    const updated = await financeTransaction(appointment.userId, async tx => {
-    const current = await tx.appointment.findFirst({ where: { id: appointment.id, userId: appointment.userId, deletedAt: null } });
-    if (!current) throw new AppError("Atendimento não encontrado.", 404, "APPOINTMENT_NOT_FOUND");
-    if (cents(current.paidAmount) > cents(appointment.total)) throw new AppError("Estorne pagamentos antes de reduzir o total.", 409, "PAYMENT_CONFLICT");
-    await tx.appointment.update({
-      where: { id: appointment.id },
-      data: {
-        customerId: appointment.customerId,
-        appointmentDate: appointment.appointmentDate,
-        subtotal: appointment.subtotal,
-        discount: appointment.discount,
-        total: appointment.total,
-        notes: appointment.notes,
+    const updated = await financeTransaction(appointment.userId, async (tx) => {
+      const current = await tx.appointment.findFirst({
+        where: { id: appointment.id, userId: appointment.userId, deletedAt: null },
+      });
+      if (!current) throw new AppError('Atendimento não encontrado.', 404, 'APPOINTMENT_NOT_FOUND');
+      if (cents(current.paidAmount) > cents(appointment.total))
+        throw new AppError('Estorne pagamentos antes de reduzir o total.', 409, 'PAYMENT_CONFLICT');
+      await tx.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          customerId: appointment.customerId,
+          appointmentDate: appointment.appointmentDate,
+          subtotal: appointment.subtotal,
+          discount: appointment.discount,
+          total: appointment.total,
+          notes: appointment.notes,
 
-        ...(items && {
-          items: {
-            deleteMany: {},
-            createMany: {
-              data: items.map((item) => ({
-                serviceId: item.serviceId,
-                professionalId: item.professionalId,
-                serviceName: item.serviceName,
-                professionalName: item.professionalName,
-                value: item.value,
-              })),
+          ...(items && {
+            items: {
+              deleteMany: {},
+              createMany: {
+                data: items.map((item) => ({
+                  serviceId: item.serviceId,
+                  professionalId: item.professionalId,
+                  serviceName: item.serviceName,
+                  professionalName: item.professionalName,
+                  value: item.value,
+                })),
+              },
             },
-          },
-        }),
-      },
-    });
+          }),
+        },
+      });
 
-    return syncAppointment(tx, appointment.userId, appointment.id);
+      return syncAppointment(tx, appointment.userId, appointment.id);
     });
     return new Appointment({
       ...updated,
@@ -141,7 +199,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       whereClause.customer = {
         name: {
           contains: filters.search,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       };
     }
@@ -188,47 +246,45 @@ export class AppointmentsRepository implements IAppointmentsRepository {
         },
         take: filters.take,
         skip: filters.skip,
-        orderBy: { appointmentDate: "desc" },
+        orderBy: { appointmentDate: 'desc' },
       }),
       prisma.appointment.count({ where: whereClause }),
       prisma.appointment.count({
-        where: { ...whereClause, paymentStatus: "PENDING" },
+        where: { ...whereClause, paymentStatus: 'PENDING' },
       }),
     ]);
 
-    const mappedData: ISearchWithFiltersResponse[] = appointments.map(
-      (appointment) => {
-        const appointmentEntity = new Appointment({
-          id: appointment.id,
-          userId: appointment.userId,
-          customerId: appointment.customerId,
-          registeredById: appointment.registeredById,
-          appointmentDate: appointment.appointmentDate,
-          subtotal: Number(appointment.subtotal),
-          discount: Number(appointment.discount),
-          total: Number(appointment.total),
-      paidAmount: Number(appointment.paidAmount),
-          paymentStatus: appointment.paymentStatus,
-          paymentMethod: appointment.paymentMethod,
-          notes: appointment.notes,
-          createdAt: appointment.createdAt,
-          updatedAt: appointment.updatedAt,
-          deletedAt: appointment.deletedAt,
-        });
+    const mappedData: ISearchWithFiltersResponse[] = appointments.map((appointment) => {
+      const appointmentEntity = new Appointment({
+        id: appointment.id,
+        userId: appointment.userId,
+        customerId: appointment.customerId,
+        registeredById: appointment.registeredById,
+        appointmentDate: appointment.appointmentDate,
+        subtotal: Number(appointment.subtotal),
+        discount: Number(appointment.discount),
+        total: Number(appointment.total),
+        paidAmount: Number(appointment.paidAmount),
+        paymentStatus: appointment.paymentStatus,
+        paymentMethod: appointment.paymentMethod,
+        notes: appointment.notes,
+        createdAt: appointment.createdAt,
+        updatedAt: appointment.updatedAt,
+        deletedAt: appointment.deletedAt,
+      });
 
-        return {
-          appointment: appointmentEntity,
-          customerName: appointment.customer.name,
-          items: appointment.items.map((item) => ({
-            serviceId: item.serviceId,
-            serviceName: item.serviceName,
-            professionalId: item.professionalId,
-            professionalName: item.professionalName,
-            value: Number(item.value),
-          })),
-        };
-      },
-    );
+      return {
+        appointment: appointmentEntity,
+        customerName: appointment.customer.name,
+        items: appointment.items.map((item) => ({
+          serviceId: item.serviceId,
+          serviceName: item.serviceName,
+          professionalId: item.professionalId,
+          professionalName: item.professionalName,
+          value: Number(item.value),
+        })),
+      };
+    });
 
     return {
       data: mappedData,
@@ -240,19 +296,32 @@ export class AppointmentsRepository implements IAppointmentsRepository {
   async delete(id: string): Promise<void> {
     const found = await prisma.appointment.findUnique({ where: { id } });
     if (!found) return;
-    await financeTransaction(found.userId, async tx => {
+    await financeTransaction(found.userId, async (tx) => {
       const current = await tx.appointment.findFirst({ where: { id, userId: found.userId } });
       if (!current) return;
       const where = { userId: current.userId, appointmentId: id };
       const [balance, removedCredit] = await Promise.all([
-        tx.financeEntry.aggregate({ where: { userId: current.userId, customerId: current.customerId, status: "POSTED" }, _sum: { creditCents: true } }),
-        tx.financeEntry.aggregate({ where: { ...where, status: "POSTED" }, _sum: { creditCents: true } }),
+        tx.financeEntry.aggregate({
+          where: { userId: current.userId, customerId: current.customerId, status: 'POSTED' },
+          _sum: { creditCents: true },
+        }),
+        tx.financeEntry.aggregate({
+          where: { ...where, status: 'POSTED' },
+          _sum: { creditCents: true },
+        }),
       ]);
       if ((balance._sum.creditCents ?? 0) - (removedCredit._sum.creditCents ?? 0) < 0) {
-        throw new AppError("O crédito gerado por este atendimento já foi usado. Estorne essa utilização antes de excluir o atendimento.", 409, "PAYMENT_CONFLICT");
+        throw new AppError(
+          'O crédito gerado por este atendimento já foi usado. Estorne essa utilização antes de excluir o atendimento.',
+          409,
+          'PAYMENT_CONFLICT',
+        );
       }
       // Remove reversal references before deleting the complete financial history.
-      await tx.financeEntry.updateMany({ where: { ...where, reversalOfId: { not: null } }, data: { reversalOfId: null } });
+      await tx.financeEntry.updateMany({
+        where: { ...where, reversalOfId: { not: null } },
+        data: { reversalOfId: null },
+      });
       await tx.financeEntry.deleteMany({ where });
       // Appointment items are removed by the database's cascading relation.
       await tx.appointment.delete({ where: { id } });

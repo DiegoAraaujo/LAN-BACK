@@ -1,4 +1,4 @@
-import type { ICustomersRepository } from "../../../interfaces/ICustomersRepository.js";
+import type { ICustomersRepository } from '../../../interfaces/ICustomersRepository.js';
 
 interface IRequest {
   userId: string;

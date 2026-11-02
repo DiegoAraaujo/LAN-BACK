@@ -1,4 +1,4 @@
-import type { Service } from "../domain/services/ServiceEntity.js";
+import type { Service } from '../domain/services/ServiceEntity.js';
 
 export interface IServicesRepository {
   create(service: Service): Promise<Service>;
@@ -8,9 +8,6 @@ export interface IServicesRepository {
   findByName(name: string, userId: string): Promise<Service | null>;
   findAll(userId: string, search?: string): Promise<Service[]>;
   delete(id: string): Promise<void>;
-  findByProfessionalId(
-    professionalId: string,
-    userId: string,
-  ): Promise<Service[]>;
+  findByProfessionalId(professionalId: string, userId: string): Promise<Service[]>;
   findManyByIds(ids: string[], userId: string): Promise<Service[]>;
 }

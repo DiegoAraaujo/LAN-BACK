@@ -18,7 +18,7 @@ class User {
 
   get id(): string {
     if (!this.props.id) {
-      throw new Error("User ID has not been assigned yet.");
+      throw new Error('User ID has not been assigned yet.');
     }
     return this.props.id;
   }
@@ -46,16 +46,14 @@ class User {
   }
   set name(value: string) {
     if (!value || value.trim().length < 3) {
-      throw new Error(
-        "Name cannot be empty and must have at least 3 characters.",
-      );
+      throw new Error('Name cannot be empty and must have at least 3 characters.');
     }
     this.props.name = value.trim();
   }
 
   set email(value: string) {
-    if (!value || !value.includes("@")) {
-      throw new Error("A valid email is required.");
+    if (!value || !value.includes('@')) {
+      throw new Error('A valid email is required.');
     }
     this.props.email = value.toLowerCase().trim();
   }
@@ -65,7 +63,7 @@ class User {
 
   set password(value: string) {
     if (!value || value.length < 6) {
-      throw new Error("Password must be at least 6 characters long.");
+      throw new Error('Password must be at least 6 characters long.');
     }
     this.props.password = value;
   }

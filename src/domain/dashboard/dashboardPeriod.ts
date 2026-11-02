@@ -1,7 +1,19 @@
-const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hourCycle: 'h23' });
+const formatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  hourCycle: 'h23',
+});
 export function businessDateParts(date: Date) {
-  const parts = Object.fromEntries(formatter.formatToParts(date).map(p => [p.type, p.value]));
-  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day), hour: Number(parts.hour) };
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]));
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+  };
 }
 // Resolve local calendar boundaries, including historical daylight saving time.
 export function businessMonthStart(year: number, monthIndex: number, day = 1) {
@@ -21,7 +33,11 @@ export function dashboardPeriod(year: number, month?: number, dateFrom?: string,
     return {
       start: businessMonthStart(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()),
       end: businessMonthStart(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate() + 1),
-      previousStart: businessMonthStart(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate() - days),
+      previousStart: businessMonthStart(
+        from.getUTCFullYear(),
+        from.getUTCMonth(),
+        from.getUTCDate() - days,
+      ),
     };
   }
   const boundary = businessMonthStart;

@@ -1,5 +1,5 @@
-import type { IServicesRepository } from "../../../interfaces/IServicesRepository.js";
-import type { Service } from "../ServiceEntity.js";
+import type { IServicesRepository } from '../../../interfaces/IServicesRepository.js';
+import type { Service } from '../ServiceEntity.js';
 
 interface IRequest {
   userId: string;
@@ -13,4 +13,3 @@ export class ListServices {
     return await this.servicesRepository.findAll(userId, search);
   }
 }
-

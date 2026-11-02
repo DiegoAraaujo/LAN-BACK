@@ -1,6 +1,6 @@
-import { Service } from "../ServiceEntity.js";
-import type { IServicesRepository } from "../../../interfaces/IServicesRepository.js";
-import { AppError } from "../../../shared/errors/AppError.js";
+import { Service } from '../ServiceEntity.js';
+import type { IServicesRepository } from '../../../interfaces/IServicesRepository.js';
+import { AppError } from '../../../shared/errors/AppError.js';
 
 interface IRequest {
   userId: string;
@@ -12,23 +12,11 @@ interface IRequest {
 export class CreateService {
   constructor(private servicesRepository: IServicesRepository) {}
 
-  async execute({
-    userId,
-    name,
-    price,
-    description,
-  }: IRequest): Promise<Service> {
-    const serviceAlreadyExists = await this.servicesRepository.findByName(
-      name,
-      userId,
-    );
+  async execute({ userId, name, price, description }: IRequest): Promise<Service> {
+    const serviceAlreadyExists = await this.servicesRepository.findByName(name, userId);
 
     if (serviceAlreadyExists) {
-      throw new AppError(
-        "A service with this name already exists.",
-        400,
-        "SERVICE_ALREADY_EXISTS",
-      );
+      throw new AppError('A service with this name already exists.', 400, 'SERVICE_ALREADY_EXISTS');
     }
 
     const service = new Service({
@@ -41,4 +29,3 @@ export class CreateService {
     return await this.servicesRepository.create(service);
   }
 }
-

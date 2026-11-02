@@ -1,4 +1,4 @@
-import type { Appointment } from "./AppointmentsEntity.js";
+import type { Appointment } from './AppointmentsEntity.js';
 
 export class AppointmentMapper {
   static toResponse(appointment: Appointment) {

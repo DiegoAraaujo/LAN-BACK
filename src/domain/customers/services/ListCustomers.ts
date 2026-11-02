@@ -1,12 +1,12 @@
-import { Customer } from "../CustomerEntity.js";
-import type { ICustomersRepository } from "../../../interfaces/ICustomersRepository.js";
+import { Customer } from '../CustomerEntity.js';
+import type { ICustomersRepository } from '../../../interfaces/ICustomersRepository.js';
 
 interface IRequest {
   userId: string;
   page: number;
   limit: number;
   search?: string | undefined;
-  status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL" | undefined;
+  status?: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL' | undefined;
 }
 
 interface IResponse {
@@ -20,13 +20,7 @@ interface IResponse {
 export class ListCustomers {
   constructor(private customerRepository: ICustomersRepository) {}
 
-  async execute({
-    userId,
-    page = 1,
-    limit = 10,
-    search,
-    status,
-  }: IRequest): Promise<IResponse> {
+  async execute({ userId, page = 1, limit = 10, search, status }: IRequest): Promise<IResponse> {
     const skip = (page - 1) * limit;
 
     const { data, total } = await this.customerRepository.findAllWithStats(

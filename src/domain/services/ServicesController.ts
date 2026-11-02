@@ -1,18 +1,19 @@
-import type { Request, Response } from "express";
+import { searchQuerySchema } from '../../shared/validation/queries.js';
+import type { Request, Response } from 'express';
 
-import type { CreateService } from "./services/CreateService.js";
-import type { UpdateService } from "./services/UpdateService.js";
-import type { ListServices } from "./services/ListServices.js";
-import type { DeleteService } from "./services/DeleteService.js";
-import type { ListServicesByProfessional } from "./services/ListServicesByProfessional.js";
+import type { CreateService } from './services/CreateService.js';
+import type { UpdateService } from './services/UpdateService.js';
+import type { ListServices } from './services/ListServices.js';
+import type { DeleteService } from './services/DeleteService.js';
+import type { ListServicesByProfessional } from './services/ListServicesByProfessional.js';
 
 import {
   createServiceSchema,
   updateServiceSchema,
   professionalIdParamSchema,
   serviceIdParamSchema,
-} from "./serviceSchema.js";
-import { ServiceMappers } from "./servicesMappers.js";
+} from './serviceSchema.js';
+import { ServiceMappers } from './servicesMappers.js';
 
 export class ServicesController {
   constructor(
@@ -39,10 +40,7 @@ export class ServicesController {
   async list(request: Request, response: Response): Promise<Response> {
     const { id: userId } = request.user;
 
-    const search =
-      typeof request.query.search === "string"
-        ? request.query.search
-        : undefined;
+    const { search } = searchQuerySchema.parse(request.query);
 
     const services = await this.listServices.execute({
       userId,
@@ -52,10 +50,7 @@ export class ServicesController {
     return response.status(200).json(services.map(ServiceMappers.toResponse));
   }
 
-  async update(
-    request: Request<{ id: string }>,
-    response: Response,
-  ): Promise<Response> {
+  async update(request: Request<{ id: string }>, response: Response): Promise<Response> {
     const { id } = serviceIdParamSchema.parse(request.params);
     const data = updateServiceSchema.parse(request.body);
 
@@ -70,10 +65,7 @@ export class ServicesController {
     return response.status(200).json(ServiceMappers.toResponse(updated));
   }
 
-  async remove(
-    request: Request<{ id: string }>,
-    response: Response,
-  ): Promise<Response> {
+  async remove(request: Request<{ id: string }>, response: Response): Promise<Response> {
     const { id } = serviceIdParamSchema.parse(request.params);
     const { id: userId } = request.user;
 

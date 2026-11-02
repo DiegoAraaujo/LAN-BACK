@@ -1,4 +1,4 @@
-import { Service } from "./ServiceEntity.js";
+import { Service } from './ServiceEntity.js';
 
 export class ServiceMappers {
   static toResponse(service: Service) {

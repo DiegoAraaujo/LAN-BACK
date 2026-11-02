@@ -1,23 +1,24 @@
-import { z } from "zod";
+import { nameSchema, moneySchema } from '../../shared/validation/fields.js';
+import { z } from 'zod';
 
 export const createServiceSchema = z.object({
-  name: z.string().min(2, "Name is too short"),
-  price: z.number().min(0, "Price cannot be negative"),
+  name: nameSchema,
+  price: moneySchema,
   description: z.string().max(300).optional(),
 });
 
 export const updateServiceSchema = z
   .object({
-    name: z.string().min(2, "Name is too short"),
-    price: z.number().min(0, "Price cannot be negative"),
+    name: nameSchema,
+    price: moneySchema,
     description: z.string().max(300).optional().nullable(),
   })
   .partial();
 
 export const serviceIdParamSchema = z.object({
-  id: z.string().uuid("Invalid service ID format"),
+  id: z.string().uuid('Invalid service ID format'),
 });
 
 export const professionalIdParamSchema = z.object({
-  professionalId: z.string().uuid("Invalid professional ID format"),
+  professionalId: z.string().uuid('Invalid professional ID format'),
 });

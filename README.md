@@ -36,3 +36,9 @@ npm run dev
 ```
 
 A API ficará disponível em `http://localhost:3333`.
+
+## Formatação
+
+Use `npm run format` para formatar o código com Prettier e o schema com Prisma, sem alterar o banco.
+Use `npm run format:check` para verificar a formatação do Prettier sem modificar arquivos.
+Para formatar os dois projetos de uma vez, execute `npm run format:all` no diretório vizinho `lan-front`.

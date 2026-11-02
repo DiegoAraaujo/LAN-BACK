@@ -1,4 +1,4 @@
-import User from "./UserEntity.js";
+import User from './UserEntity.js';
 
 export interface IUserRepository {
   create(user: User): Promise<User>;

@@ -20,7 +20,7 @@ export class Service {
 
   get id(): string {
     if (!this.props.id) {
-      throw new Error("Service ID is required but was not provided.");
+      throw new Error('Service ID is required but was not provided.');
     }
     return this.props.id;
   }
@@ -58,7 +58,7 @@ export class Service {
   }
 
   set price(value: number) {
-    if (value < 0) throw new Error("Price cannot be negative.");
+    if (value < 0) throw new Error('Price cannot be negative.');
     this.props.price = value;
   }
 

@@ -1,82 +1,81 @@
-import { prisma } from "../../shared/database/prisma.js";
-import { financeTransaction, cents } from "../finance/FinanceService.js";
-import { AppError } from "../../shared/errors/AppError.js";
-import { Customer } from "./CustomerEntity.js";
+import { prisma } from '../../shared/database/prisma.js';
+import { financeTransaction, cents } from '../finance/FinanceService.js';
+import { AppError } from '../../shared/errors/AppError.js';
+import { Customer } from './CustomerEntity.js';
 import type {
   CustomerWithStats,
   CustomerLoyaltyStats,
   ICustomersRepository,
-} from "../../interfaces/ICustomersRepository.js";
+} from '../../interfaces/ICustomersRepository.js';
 
 class CustomersRepository implements ICustomersRepository {
-async getLoyaltyRanking(userId: string, limit: number): Promise<CustomerLoyaltyStats[]> {
-  const ranking = await prisma.appointment.groupBy({
-    by: ["customerId"],
-    where: {
-      userId,
-      deletedAt: null,
-      appointmentDate: { lte: new Date() },
-      customer: { deletedAt: null },
-    },
-    _count: { id: true },
-    _sum: { paidAmount: true },
-    _max: { appointmentDate: true },
-    orderBy: [
-      { _sum: { paidAmount: "desc" } },
-      { _count: { id: "desc" } },
-    ],
-    take: limit,
-  });
+  async getLoyaltyRanking(userId: string, limit: number): Promise<CustomerLoyaltyStats[]> {
+    const ranking = await prisma.appointment.groupBy({
+      by: ['customerId'],
+      where: {
+        userId,
+        deletedAt: null,
+        appointmentDate: { lte: new Date() },
+        customer: { deletedAt: null },
+      },
+      _count: { id: true },
+      _sum: { paidAmount: true },
+      _max: { appointmentDate: true },
+      orderBy: [{ _sum: { paidAmount: 'desc' } }, { _count: { id: 'desc' } }],
+      take: limit,
+    });
 
-  const customers = await prisma.customer.findMany({
-    where: { userId, deletedAt: null, id: { in: ranking.map(item => item.customerId) } },
-    include: { contacts: true },
-  });
-  const customersById = new Map(customers.map(customer => [customer.id, customer]));
+    const customers = await prisma.customer.findMany({
+      where: { userId, deletedAt: null, id: { in: ranking.map((item) => item.customerId) } },
+      include: { contacts: true },
+    });
+    const customersById = new Map(customers.map((customer) => [customer.id, customer]));
 
-  return ranking.flatMap(item => {
-    const raw = customersById.get(item.customerId);
-    const lastVisit = item._max.appointmentDate;
-    if (!raw || !lastVisit) return [];
-    return [{
-      customerId: item.customerId,
-      visits: item._count.id,
-      totalSpent: Number(item._sum.paidAmount ?? 0),
-      lastVisit,
-      customer: new Customer({ ...raw }),
-    }];
-  });
-}
+    return ranking.flatMap((item) => {
+      const raw = customersById.get(item.customerId);
+      const lastVisit = item._max.appointmentDate;
+      if (!raw || !lastVisit) return [];
+      return [
+        {
+          customerId: item.customerId,
+          visits: item._count.id,
+          totalSpent: Number(item._sum.paidAmount ?? 0),
+          lastVisit,
+          customer: new Customer({ ...raw }),
+        },
+      ];
+    });
+  }
 
-async create(customer: Customer): Promise<Customer> {
-  const created = await prisma.customer.create({
-    data: {
-      userId: customer.userId,
-      name: customer.name,
-      address: customer.address ?? null,
-      status: customer.status,
+  async create(customer: Customer): Promise<Customer> {
+    const created = await prisma.customer.create({
+      data: {
+        userId: customer.userId,
+        name: customer.name,
+        address: customer.address ?? null,
+        status: customer.status,
 
-      ...(customer.contacts &&
-        customer.contacts.length > 0 && {
-          contacts: {
-            create: customer.contacts.map((c) => ({
-              type: c.type,
-              value: c.value,
-              userId: customer.userId,
-            })),
-          },
-        }),
-    },
-    include: {
-      contacts: true,
-    },
-  });
+        ...(customer.contacts &&
+          customer.contacts.length > 0 && {
+            contacts: {
+              create: customer.contacts.map((c) => ({
+                type: c.type,
+                value: c.value,
+                userId: customer.userId,
+              })),
+            },
+          }),
+      },
+      include: {
+        contacts: true,
+      },
+    });
 
-  return new Customer({ ...created });
-}
+    return new Customer({ ...created });
+  }
 
   async findContactByTypeAndValue(
-    type: "WHATSAPP" | "INSTAGRAM",
+    type: 'WHATSAPP' | 'INSTAGRAM',
     value: string,
     userId: string,
   ): Promise<{ customerId: string } | null> {
@@ -115,48 +114,48 @@ async create(customer: Customer): Promise<Customer> {
   }
 
   async update(customer: Customer): Promise<Customer> {
-  if (!customer.id) {
-    throw new Error("Cannot update a customer without an ID");
+    if (!customer.id) {
+      throw new Error('Cannot update a customer without an ID');
+    }
+
+    const updated = await prisma.customer.update({
+      where: { id: customer.id },
+      data: {
+        name: customer.name,
+        address: customer.address ?? null,
+        status: customer.status,
+
+        ...(customer.contacts !== undefined && {
+          contacts: {
+            deleteMany: {},
+            create: customer.contacts.map((c) => ({
+              type: c.type,
+              value: c.value,
+              userId: customer.userId,
+            })),
+          },
+        }),
+      },
+      include: {
+        contacts: true,
+      },
+    });
+
+    return new Customer({ ...updated });
   }
-
-  const updated = await prisma.customer.update({
-    where: { id: customer.id },
-    data: {
-      name: customer.name,
-      address: customer.address ?? null,
-      status: customer.status,
-
-      ...(customer.contacts !== undefined && {
-        contacts: {
-          deleteMany: {},
-          create: customer.contacts.map((c) => ({
-            type: c.type,
-            value: c.value,
-            userId: customer.userId,
-          })),
-        },
-      }),
-    },
-    include: {
-      contacts: true,
-    },
-  });
-
-  return new Customer({ ...updated });
-}
 
   async findAllWithStats(
     userId: string,
     skip: number,
     take: number,
     search?: string,
-    status?: "ACTIVE" | "INACTIVE" | "OCCASIONAL",
+    status?: 'ACTIVE' | 'INACTIVE' | 'OCCASIONAL',
   ): Promise<{ data: CustomerWithStats[]; total: number }> {
     const searchFilter = search
       ? {
           name: {
             contains: search,
-            mode: "insensitive" as const,
+            mode: 'insensitive' as const,
           },
         }
       : {};
@@ -187,7 +186,7 @@ async create(customer: Customer): Promise<Customer> {
             select: { total: true, paidAmount: true },
           },
         },
-        orderBy: { name: "asc" },
+        orderBy: { name: 'asc' },
         skip,
         take,
       }),
@@ -209,7 +208,7 @@ async create(customer: Customer): Promise<Customer> {
 
     const [statusCounts, newThisMonth] = await Promise.all([
       prisma.customer.groupBy({
-        by: ["status"],
+        by: ['status'],
         where: { userId, deletedAt: null },
         _count: { _all: true },
       }),
@@ -224,10 +223,10 @@ async create(customer: Customer): Promise<Customer> {
       }),
     ]);
 
-    const counts = new Map(statusCounts.map(item => [item.status, item._count._all]));
-    const active = counts.get("ACTIVE") ?? 0;
-    const inactive = counts.get("INACTIVE") ?? 0;
-    const occasional = counts.get("OCCASIONAL") ?? 0;
+    const counts = new Map(statusCounts.map((item) => [item.status, item._count._all]));
+    const active = counts.get('ACTIVE') ?? 0;
+    const inactive = counts.get('INACTIVE') ?? 0;
+    const occasional = counts.get('OCCASIONAL') ?? 0;
     const total = statusCounts.reduce((sum, item) => sum + item._count._all, 0);
 
     return {
@@ -242,11 +241,24 @@ async create(customer: Customer): Promise<Customer> {
   async delete(id: string): Promise<void> {
     const customer = await prisma.customer.findUnique({ where: { id } });
     if (!customer) return;
-    await financeTransaction(customer.userId, async tx => {
-      const balance = await tx.financeEntry.aggregate({ where: { customerId: id, userId: customer.userId, status: "POSTED" }, _sum: { creditCents: true } });
-      const appointments = await tx.appointment.aggregate({ where: { customerId: id, userId: customer.userId, deletedAt: null }, _sum: { total: true, paidAmount: true } });
-      if ((balance._sum.creditCents ?? 0) !== 0 || cents(appointments._sum.total ?? 0) > cents(appointments._sum.paidAmount ?? 0)) {
-        throw new AppError("Cliente possui crédito ou pagamentos em aberto. Regularize o saldo antes de excluir.", 409, "PAYMENT_CONFLICT");
+    await financeTransaction(customer.userId, async (tx) => {
+      const balance = await tx.financeEntry.aggregate({
+        where: { customerId: id, userId: customer.userId, status: 'POSTED' },
+        _sum: { creditCents: true },
+      });
+      const appointments = await tx.appointment.aggregate({
+        where: { customerId: id, userId: customer.userId, deletedAt: null },
+        _sum: { total: true, paidAmount: true },
+      });
+      if (
+        (balance._sum.creditCents ?? 0) !== 0 ||
+        cents(appointments._sum.total ?? 0) > cents(appointments._sum.paidAmount ?? 0)
+      ) {
+        throw new AppError(
+          'Cliente possui crédito ou pagamentos em aberto. Regularize o saldo antes de excluir.',
+          409,
+          'PAYMENT_CONFLICT',
+        );
       }
       await tx.customer.update({ where: { id }, data: { deletedAt: new Date() } });
     });

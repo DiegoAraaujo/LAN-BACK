@@ -1,4 +1,4 @@
-import type { UserToken } from "@prisma/client";
+import type { UserToken } from '@prisma/client';
 
 export interface ICreateUserTokenDTO {
   user_id: string;
@@ -8,10 +8,7 @@ export interface ICreateUserTokenDTO {
 
 export interface IUserTokensRepository {
   create(data: ICreateUserTokenDTO): Promise<UserToken>;
-  findByUserIdAndRefreshToken(
-    user_id: string,
-    refresh_token: string,
-  ): Promise<UserToken | null>;
+  findByUserIdAndRefreshToken(user_id: string, refresh_token: string): Promise<UserToken | null>;
   deleteById(id: string): Promise<void>;
   deleteByRefreshToken(refreshToken: string): Promise<void>;
   revokeAllForUser(userId: string): Promise<void>;

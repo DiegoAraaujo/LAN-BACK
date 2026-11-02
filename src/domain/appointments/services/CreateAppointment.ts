@@ -1,12 +1,13 @@
 import type {
+  InitialAppointmentPayment,
   IAppointmentsRepository,
   ICreateAppointmentItemInput,
-} from "../../../interfaces/IAppointmentsRepository.js";
-import type { ICustomersRepository } from "../../../interfaces/ICustomersRepository.js";
-import type { IProfessionalsRepository } from "../../../interfaces/IProfessionalsRepository.js";
-import type { IServicesRepository } from "../../../interfaces/IServicesRepository.js";
-import { AppError } from "../../../shared/errors/AppError.js";
-import { Appointment } from "../AppointmentsEntity.js";
+} from '../../../interfaces/IAppointmentsRepository.js';
+import type { ICustomersRepository } from '../../../interfaces/ICustomersRepository.js';
+import type { IProfessionalsRepository } from '../../../interfaces/IProfessionalsRepository.js';
+import type { IServicesRepository } from '../../../interfaces/IServicesRepository.js';
+import { AppError } from '../../../shared/errors/AppError.js';
+import { Appointment } from '../AppointmentsEntity.js';
 
 interface IRequest {
   userId: string;
@@ -14,14 +15,9 @@ interface IRequest {
   registeredById: string;
   appointmentDate: string | Date;
   discount: number;
-  paymentStatus: "PAID" | "PENDING";
-  paymentMethod?:
-    | "DEBIT_CARD"
-    | "CREDIT_CARD"
-    | "CASH"
-    | "PIX"
-    | "OTHER"
-    | null;
+  paymentStatus: 'PAID' | 'PENDING';
+  paymentMethod?: 'DEBIT_CARD' | 'CREDIT_CARD' | 'CASH' | 'PIX' | 'OTHER' | null;
+  initialPayment?: InitialAppointmentPayment | undefined;
   notes?: string | null | undefined;
   items: {
     serviceId: string;
@@ -40,22 +36,19 @@ export class CreateAppointment {
   async execute(input: IRequest): Promise<Appointment> {
     if (!input.items || input.items.length === 0) {
       throw new AppError(
-        "An appointment must have at least one service item.",
+        'An appointment must have at least one service item.',
         400,
-        "MIN_ITEMS_REQUIRED",
+        'MIN_ITEMS_REQUIRED',
       );
     }
 
-    const customer = await this.customersRepository.findById(
-      input.customerId,
-      input.userId,
-    );
+    const customer = await this.customersRepository.findById(input.customerId, input.userId);
 
     if (!customer) {
       throw new AppError(
         `Customer with ID ${input.customerId} not found.`,
         404,
-        "CUSTOMER_NOT_FOUND",
+        'CUSTOMER_NOT_FOUND',
       );
     }
 
@@ -79,7 +72,7 @@ export class CreateAppointment {
         throw new AppError(
           `Service with ID ${item.serviceId} not found.`,
           404,
-          "SERVICE_NOT_FOUND",
+          'SERVICE_NOT_FOUND',
         );
       }
 
@@ -88,18 +81,16 @@ export class CreateAppointment {
         throw new AppError(
           `Professional with ID ${item.professionalId} not found.`,
           404,
-          "PROFESSIONAL_NOT_FOUND",
+          'PROFESSIONAL_NOT_FOUND',
         );
       }
 
-      const professionalHandlesService = professional.servicesIds?.includes(
-        item.serviceId,
-      );
+      const professionalHandlesService = professional.servicesIds?.includes(item.serviceId);
       if (!professionalHandlesService) {
         throw new AppError(
           `Professional with ID ${item.professionalId} does not provide the service with ID ${item.serviceId}.`,
           400,
-          "PROFESSIONAL_SERVICE_MISMATCH",
+          'PROFESSIONAL_SERVICE_MISMATCH',
         );
       }
 
@@ -115,14 +106,12 @@ export class CreateAppointment {
     }
 
     if (input.discount > subtotal) {
-      throw new AppError(
-        "Discount cannot be greater than the subtotal.",
-        400,
-        "INVALID_DISCOUNT",
-      );
+      throw new AppError('Discount cannot be greater than the subtotal.', 400, 'INVALID_DISCOUNT');
     }
 
-    const total = subtotal - input.discount;
+    if (Math.round(subtotal * 100) > 99999999)
+      throw new AppError('Total acima do limite permitido.', 400, 'INVALID_AMOUNT');
+    const total = Math.round((subtotal - input.discount) * 100) / 100;
 
     const appointment = new Appointment({
       userId: input.userId,
@@ -132,13 +121,17 @@ export class CreateAppointment {
       subtotal,
       discount: input.discount,
       total,
-      paymentStatus: input.paymentStatus,
+      paymentStatus: input.initialPayment ? 'PENDING' : input.paymentStatus,
       paymentMethod:
-        (input.paymentStatus === "PENDING" ? null : input.paymentMethod) ??
+        (input.initialPayment || input.paymentStatus === 'PENDING' ? null : input.paymentMethod) ??
         null,
       notes: input.notes ?? null,
     });
 
-    return await this.appointmentsRepository.create(appointment, preparedItems);
+    return await this.appointmentsRepository.create(
+      appointment,
+      preparedItems,
+      input.initialPayment,
+    );
   }
 }

@@ -1,14 +1,19 @@
-import type { Request, Response } from "express";
+import type { Request, Response } from 'express';
 
-import type LoginService from "./services/LoginService.js";
-import type { RefreshTokenService } from "./services/RefreshTokenService.js";
+import type LoginService from './services/LoginService.js';
+import type { RefreshTokenService } from './services/RefreshTokenService.js';
 
-import { createSessionSchema } from "./schemas/authSchema.js";
-import { readCookie, refreshCookie, setSessionCookies, clearSessionCookies } from "../../shared/http/sessionCookies.js";
-import { AppError } from "../../shared/errors/AppError.js";
-import type { LogoutService } from "./services/LogoutService.js";
-import type { RevokeAllSessionsService } from "./services/RevokeAllSessionsService.js";
-import { UserMapper } from "../users/UsersMappers.js";
+import { createSessionSchema } from './schemas/authSchema.js';
+import {
+  readCookie,
+  refreshCookie,
+  setSessionCookies,
+  clearSessionCookies,
+} from '../../shared/http/sessionCookies.js';
+import { AppError } from '../../shared/errors/AppError.js';
+import type { LogoutService } from './services/LogoutService.js';
+import type { RevokeAllSessionsService } from './services/RevokeAllSessionsService.js';
+import { UserMapper } from '../users/UsersMappers.js';
 
 class AuthController {
   constructor(
@@ -37,8 +42,8 @@ class AuthController {
 
   async createRefreshToken(request: Request, response: Response) {
     const refreshToken = readCookie(request, refreshCookie);
-    if (!refreshToken) throw new AppError("Session expired", 401, "TOKEN_INVALID");
-    const refresh = await this.refreshTokenService.execute({refreshToken});
+    if (!refreshToken) throw new AppError('Session expired', 401, 'TOKEN_INVALID');
+    const refresh = await this.refreshTokenService.execute({ refreshToken });
 
     setSessionCookies(response, refresh.token, refresh.refreshToken, refresh.remember);
     return response.status(204).send();

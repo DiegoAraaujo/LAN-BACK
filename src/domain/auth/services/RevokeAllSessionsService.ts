@@ -1,4 +1,4 @@
-import type { IUserTokensRepository } from "../../../interfaces/IUserTokensRepository.js";
+import type { IUserTokensRepository } from '../../../interfaces/IUserTokensRepository.js';
 
 export class RevokeAllSessionsService {
   constructor(private userTokensRepository: IUserTokensRepository) {}

@@ -39,19 +39,19 @@ model UserToken {
 }
 
 model Customer {
-  id           String           @id @default(uuid())
-  name         String
-  address      String?
-  status       CustomerStatus   @default(ACTIVE)
-  deletedAt    DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  userId       String
-  appointments Appointment[]
-  contacts     Contact[]
-  loyalty      CustomerLoyalty?
+  id             String           @id @default(uuid())
+  name           String
+  address        String?
+  status         CustomerStatus   @default(ACTIVE)
+  deletedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  userId         String
+  appointments   Appointment[]
+  contacts       Contact[]
+  loyalty        CustomerLoyalty?
   financeEntries FinanceEntry[]
-  user         User             @relation(fields: [userId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
 
   @@map("customers")
 }
@@ -189,28 +189,28 @@ enum PaymentStatus {
 }
 
 model FinanceEntry {
-  id            String @id @default(uuid())
+  id            String         @id @default(uuid())
   userId        String
   customerId    String?
   appointmentId String?
   kind          String
-  status        String @default("POSTED")
+  status        String         @default("POSTED")
   description   String
   category      String
-  cashCents     Int @default(0)
-  creditCents   Int @default(0)
-  appliedCents  Int @default(0)
+  cashCents     Int            @default(0)
+  creditCents   Int            @default(0)
+  appliedCents  Int            @default(0)
   method        PaymentMethod?
   occurredAt    DateTime
   dueAt         DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime       @default(now())
   requestId     String
-  reversalOfId  String? @unique
-  user          User @relation(fields: [userId], references: [id])
-  customer      Customer? @relation(fields: [customerId], references: [id])
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
-  reversalOf    FinanceEntry? @relation("EntryReversal", fields: [reversalOfId], references: [id])
-  reversal      FinanceEntry? @relation("EntryReversal")
+  reversalOfId  String?        @unique
+  user          User           @relation(fields: [userId], references: [id])
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  reversalOf    FinanceEntry?  @relation("EntryReversal", fields: [reversalOfId], references: [id])
+  reversal      FinanceEntry?  @relation("EntryReversal")
 
   @@unique([userId, requestId])
   @@index([userId, occurredAt])

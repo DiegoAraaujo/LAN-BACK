@@ -1,8 +1,8 @@
-import type { IProfessionalsRepository } from "../../../interfaces/IProfessionalsRepository.js";
-import { AppError } from "../../../shared/errors/AppError.js";
-import { Professional } from "../ProfessionalEntity.js";
-import type { IServicesRepository } from "../../../interfaces/IServicesRepository.js";
-import { validateServices } from "./validateServices.js";
+import type { IProfessionalsRepository } from '../../../interfaces/IProfessionalsRepository.js';
+import { AppError } from '../../../shared/errors/AppError.js';
+import { Professional } from '../ProfessionalEntity.js';
+import type { IServicesRepository } from '../../../interfaces/IServicesRepository.js';
+import { validateServices } from './validateServices.js';
 
 interface IRequest {
   id: string;
@@ -29,38 +29,34 @@ export class UpdateProfessional {
     profileImage,
     servicesIds,
   }: IRequest): Promise<Professional> {
-    const professional = await this.professionalsRepository.findById(
-      id,
-      userId,
-    );
+    const professional = await this.professionalsRepository.findById(id, userId);
 
     if (!professional) {
-      throw new AppError(
-        "Professional not found.",
-        404,
-        "PROFESSIONAL_NOT_FOUND",
-      );
+      throw new AppError('Professional not found.', 404, 'PROFESSIONAL_NOT_FOUND');
     }
 
     const validatedIds = await validateServices(
-      this.servicesRepository, userId, servicesIds ?? professional.servicesIds ?? [],
+      this.servicesRepository,
+      userId,
+      servicesIds ?? professional.servicesIds ?? [],
     );
 
     if (phone && phone !== professional.phone) {
-      const phoneExists = await this.professionalsRepository.findByPhone(phone);
+      const phoneExists = await this.professionalsRepository.findByPhone(phone, userId);
 
       if (phoneExists) {
         throw new AppError(
-          "A professional with this phone number already exists.",
+          'A professional with this phone number already exists.',
           409,
-          "PROFESSIONAL_ALREADY_EXISTS",
+          'PROFESSIONAL_ALREADY_EXISTS',
         );
       }
       professional.phone = phone;
     }
 
+    if (phone !== undefined) professional.phone = phone;
     if (name) professional.name = name;
-    if (address) professional.address = address;
+    if (address !== undefined) professional.address = address;
     if (profileImage !== undefined) professional.profileImage = profileImage;
     professional.servicesIds = validatedIds;
 

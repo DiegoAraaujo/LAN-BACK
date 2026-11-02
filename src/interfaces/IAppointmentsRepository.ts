@@ -1,4 +1,7 @@
-import type { Appointment } from "../domain/appointments/AppointmentsEntity.js";
+import type { z } from 'zod';
+import type { paymentSchema } from '../domain/finance/FinanceService.js';
+export type InitialAppointmentPayment = z.infer<typeof paymentSchema>;
+import type { Appointment } from '../domain/appointments/AppointmentsEntity.js';
 
 export interface ICreateAppointmentItemInput {
   serviceId: string;
@@ -11,7 +14,7 @@ export interface ICreateAppointmentItemInput {
 export interface IFindManyAppointmentsFilters {
   userId: string;
   search?: string | undefined;
-  paymentStatus?: "PAID" | "PENDING" | "PARTIAL" | undefined;
+  paymentStatus?: 'PAID' | 'PENDING' | 'PARTIAL' | undefined;
   year?: number | undefined;
   month?: number | undefined;
   take: number;
@@ -34,20 +37,16 @@ export interface IAppointmentsRepository {
   create(
     appointment: Appointment,
     items: ICreateAppointmentItemInput[],
+    initialPayment?: InitialAppointmentPayment,
   ): Promise<Appointment>;
 
-  update(
-    appointment: Appointment,
-    items?: ICreateAppointmentItemInput[],
-  ): Promise<Appointment>;
+  update(appointment: Appointment, items?: ICreateAppointmentItemInput[]): Promise<Appointment>;
 
   findById(id: string, userId: string): Promise<Appointment | null>;
 
   delete(id: string): Promise<void>;
 
-  searchWithFilters(
-    filters: IFindManyAppointmentsFilters,
-  ): Promise<{
+  searchWithFilters(filters: IFindManyAppointmentsFilters): Promise<{
     data: ISearchWithFiltersResponse[];
     total: number;
     totalPending: number;
