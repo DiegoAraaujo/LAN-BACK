@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../shared/database/prisma.js';
 import { cents, methodSchema } from './FinanceService.js';
-import { dashboardPeriod } from '../dashboard/dashboardPeriod.js';
+import { businessDateParts, dashboardPeriod } from '../dashboard/dashboardPeriod.js';
 
 export function dateRange(from?: string, to?: string) {
   // Dates in the business timezone (Brazil has no DST for current operational dates).
@@ -17,7 +17,7 @@ export async function searchAppointments(userId: string, filters: z.infer<typeof
   const serviceIds = filters.serviceIds ?? (filters.serviceId ? [filters.serviceId] : []);
   let dates = dateRange(filters.dateFrom, filters.dateTo);
   if (!filters.dateFrom && !filters.dateTo && (filters.year || filters.month)) {
-    const p = dashboardPeriod(filters.year ?? new Date().getFullYear(), filters.month);
+    const p = dashboardPeriod(filters.year ?? businessDateParts(new Date()).year, filters.month);
     dates = { gte: p.start, lt: p.end };
   }
   const paymentWhere: Prisma.FinanceEntryWhereInput = {

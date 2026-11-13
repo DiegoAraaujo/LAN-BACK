@@ -21,6 +21,14 @@ export function errorHandler(error: Error, req: Request, res: Response, next: Ne
     });
   }
 
+  // Unique constraint hit (e.g. two concurrent requests with the same contact/email).
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    return res.status(409).json({
+      code: 'DUPLICATE_VALUE',
+      message: 'Já existe um registro com esses dados.',
+    });
+  }
+
   if (
     error instanceof Prisma.PrismaClientKnownRequestError ||
     error instanceof Prisma.PrismaClientInitializationError ||

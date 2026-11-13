@@ -17,9 +17,13 @@ class UsersRepository implements IUserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // Emails are stored lowercased, but older accounts may still have mixed case.
+    const matches = await prisma.user.findMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      take: 5,
     });
+    const user =
+      matches.find((item) => item.email === email) ?? (matches.length === 1 ? matches[0] : null);
 
     if (!user) return null;
 

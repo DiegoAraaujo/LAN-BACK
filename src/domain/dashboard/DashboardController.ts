@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { DashboardStats } from './DashboardService.js';
 import { dashboardQuerySchema } from '../../shared/validation/queries.js';
+import { businessDateParts } from './dashboardPeriod.js';
 
 export class DashboardController {
   constructor(private getDashboardStatsService: DashboardStats) {}
@@ -9,7 +10,7 @@ export class DashboardController {
     const userId = req.user.id;
     const { year, month, dateFrom, dateTo } = dashboardQuerySchema.parse(req.query);
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = businessDateParts(new Date()).year;
 
     const stats = await this.getDashboardStatsService.execute({
       userId,

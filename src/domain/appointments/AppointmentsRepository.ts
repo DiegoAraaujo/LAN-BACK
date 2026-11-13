@@ -15,7 +15,7 @@ import type {
 } from '../../interfaces/IAppointmentsRepository.js';
 import { prisma } from '../../shared/database/prisma.js';
 import { Appointment } from './AppointmentsEntity.js';
-import { businessMonthStart } from '../dashboard/dashboardPeriod.js';
+import { businessDateParts, businessMonthStart } from '../dashboard/dashboardPeriod.js';
 
 export class AppointmentsRepository implements IAppointmentsRepository {
   async create(
@@ -209,7 +209,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
     }
 
     if (filters.year !== undefined || filters.month !== undefined) {
-      let startYear = filters.year ?? new Date().getFullYear();
+      let startYear = filters.year ?? businessDateParts(new Date()).year;
       let startMonth = filters.month !== undefined ? filters.month - 1 : 0;
 
       let endYear = startYear;
@@ -222,7 +222,7 @@ export class AppointmentsRepository implements IAppointmentsRepository {
       }
 
       if (filters.year === undefined && filters.month !== undefined) {
-        startYear = new Date().getFullYear();
+        startYear = businessDateParts(new Date()).year;
         endYear = startYear;
       }
 

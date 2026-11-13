@@ -135,6 +135,15 @@ test('partial credit leaves only the unpaid remainder open', async () => {
   assert.equal(saved.paymentStatus, 'PARTIAL');
   assert.equal(saved.paidAmount, 40);
 });
+test('credit cannot exceed what payments leave open (no credit cash-out as change)', async () => {
+  const state = setup(4000);
+  // Owes 100, pays 100 in Pix and also tries to use 40 of credit -> would return 40 as change.
+  await assert.rejects(() => create(makePayment(40, 100)));
+  // Paying 70 in Pix with 40 of credit is also too much credit (only 30 was missing).
+  await assert.rejects(() => create(makePayment(40, 70)));
+  assert.equal(state().appointments.length, 0);
+  assert.equal(state().entries.length, 1);
+});
 test('insufficient credit rolls back the entire appointment and payment', async () => {
   const state = setup(1000);
   await assert.rejects(() => create(makePayment(100)));

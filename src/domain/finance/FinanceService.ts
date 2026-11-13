@@ -105,14 +105,28 @@ export async function syncAppointment(tx: DatabaseTransaction, userId: string, i
       'PAYMENT_CONFLICT',
     );
   const last = await tx.financeEntry.findFirst({
-    where: { userId, appointmentId: id, status: 'POSTED', kind: 'PAYMENT', reversal: null },
-    orderBy: { occurredAt: 'desc' },
+    // Legs of one payment share occurredAt; break ties by creation and skip the credit leg (no method).
+    where: {
+      userId,
+      appointmentId: id,
+      status: 'POSTED',
+      kind: 'PAYMENT',
+      reversal: null,
+      method: { not: null },
+    },
+    orderBy: [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
   });
+  const lastAny = last
+    ? null
+    : await tx.financeEntry.findFirst({
+        where: { userId, appointmentId: id, status: 'POSTED', kind: 'PAYMENT', reversal: null },
+        orderBy: [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
+      });
   return tx.appointment.update({
     where: { id },
     data: {
       paidAmount: paid / 100,
-      paidAt: last?.occurredAt ?? null,
+      paidAt: (last ?? lastAny)?.occurredAt ?? null,
       paymentStatus: paid >= cents(appointment.total) ? 'PAID' : paid > 0 ? 'PARTIAL' : 'PENDING',
       paymentMethod: last?.method ?? null,
     },
@@ -138,7 +152,15 @@ export class FinanceService {
     if (previous) {
       if (previous.appointmentId !== appointmentId || previous.kind !== 'PAYMENT')
         throw new AppError('Identificador já utilizado.', 409, 'PAYMENT_CONFLICT');
-      return previous;
+      // Idempotent replay: answer with the same shape as the first call.
+      const entries = await tx.financeEntry.findMany({
+        where: {
+          userId,
+          OR: [{ requestId: data.requestId }, { requestId: { startsWith: `${data.requestId}:` } }],
+        },
+        orderBy: { requestId: 'asc' },
+      });
+      return { entries, change: null, replayed: true };
     }
     const appointment = await tx.appointment.findFirst({
       where: { id: appointmentId, userId, deletedAt: null },
@@ -164,6 +186,15 @@ export class FinanceService {
     ) {
       throw new AppError(
         'Confira o valor em aberto e o crédito disponível.',
+        409,
+        'PAYMENT_CONFLICT',
+      );
+    }
+    // Credit may only cover what the informed payments leave open. Otherwise the
+    // "surplus" would be the credit itself, which could be returned as cash change.
+    if (credit > 0 && credit > remaining - received) {
+      throw new AppError(
+        'O crédito usado não pode ultrapassar o valor que falta após os pagamentos informados.',
         409,
         'PAYMENT_CONFLICT',
       );
