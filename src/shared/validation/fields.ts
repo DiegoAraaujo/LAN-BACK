@@ -14,7 +14,7 @@ export const photoSchema = z
   .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/)
   .nullable()
   .optional();
-export const emailSchema = z.string().trim().email('E-mail inválido.').max(254);
+export const emailSchema = z.string().trim().toLowerCase().email('E-mail inválido.').max(254);
 export const passwordSchema = z
   .string()
   .min(8, 'A senha deve ter pelo menos 8 caracteres.')

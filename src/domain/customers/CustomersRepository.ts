@@ -2,6 +2,7 @@ import { prisma } from '../../shared/database/prisma.js';
 import { financeTransaction, cents } from '../finance/FinanceService.js';
 import { AppError } from '../../shared/errors/AppError.js';
 import { Customer } from './CustomerEntity.js';
+import { businessDateParts, businessMonthStart } from '../dashboard/dashboardPeriod.js';
 import type {
   CustomerWithStats,
   CustomerLoyaltyStats,
@@ -202,9 +203,9 @@ class CustomersRepository implements ICustomersRepository {
     occasional: number;
     newThisMonth: number;
   }> {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    // Month boundary in the business timezone, not the server's.
+    const now = businessDateParts(new Date());
+    const startOfMonth = businessMonthStart(now.year, now.month - 1);
 
     const [statusCounts, newThisMonth] = await Promise.all([
       prisma.customer.groupBy({
@@ -260,6 +261,8 @@ class CustomersRepository implements ICustomersRepository {
           'PAYMENT_CONFLICT',
         );
       }
+      // Free the WhatsApp/Instagram for reuse: contacts are unique per account.
+      await tx.contact.deleteMany({ where: { customerId: id, userId: customer.userId } });
       await tx.customer.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }

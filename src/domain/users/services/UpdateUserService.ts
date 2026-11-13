@@ -22,7 +22,8 @@ class UpdateUserService {
     if (data.email && data.email !== user.email) {
       const emailExists = await this.userRepository.findByEmail(data.email);
 
-      if (emailExists) {
+      // Same account found means only the letter case changed (legacy mixed-case email).
+      if (emailExists && emailExists.id !== user.id) {
         throw new AppError('Email already in use.', 400, 'EMAIL_ALREADY_EXISTS');
       }
 

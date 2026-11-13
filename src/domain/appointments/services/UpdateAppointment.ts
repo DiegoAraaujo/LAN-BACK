@@ -75,7 +75,8 @@ export class UpdateAppointment {
             'PROFESSIONAL_SERVICE_MISMATCH',
           );
 
-        subtotal += Number(service.price);
+        // Sum in cents: float sums like 49.9 + 29.9 + 19.9 = 99.69999... would reject a valid discount.
+        subtotal = (Math.round(subtotal * 100) + Math.round(Number(service.price) * 100)) / 100;
 
         preparedItems.push({
           serviceId: item.serviceId,
